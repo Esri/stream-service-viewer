@@ -2,9 +2,6 @@
 
 Sample JavaScript Stream Service Viewer.
 
-## Documentation
-- [Aggregation Renderer Specification](./doc/aggregation-renderer-spec/README.md)
-
 ## Issues
 
 Find a bug or want to request a new feature?  Please let us know by submitting an issue.
