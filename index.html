@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+	<head lang="en">
+		<meta charset="UTF-8" />
+		<title>Stream Service Viewer</title>
+		<link
+			rel="stylesheet"
+			href="https://js.arcgis.com/4.14/esri/themes/light/main.css"
+		/>
+		<link
+			rel="stylesheet"
+			href="https://js.arcgis.com/3.42/esri/css/esri.css"
+		/>
+		<link rel="stylesheet" href="./streamServiceViewerStyles.css" />
+		<script src="https://js.arcgis.com/3.42/"></script>
+		<script src="https://use.fontawesome.com/9482a0b1d1.js"></script>
+		<script>
+			require([
+				'esri/map',
+				'esri/toolbars/draw',
+				'esri/layers/StreamLayer',
+				'esri/InfoTemplate',
+				'esri/graphic',
+				'esri/symbols/SimpleFillSymbol',
+				'esri/symbols/SimpleLineSymbol',
+				'dojo/_base/Color',
+				'dojo/on',
+				'dojo/dom-class',
+				'dojo/domReady!',
+			], function (
+				Map,
+				Draw,
+				StreamLayer,
+				InfoTemplate,
+				Graphic,
+				SimpleFillSymbol,
+				SimpleLineSymbol,
+				Color,
+				on,
+				domClass
+			) {
+				var map, drawTools, streamLayer;
+
+				function init() {
+					map = new Map('map', {
+						basemap: 'gray-vector',
+					});
+
+					drawTools = new Draw(map);
+
+					//connect click events to UI buttons
+					on(dojo.byId('toggleStreamLayer'), 'click', toggleStreamLayer);
+					on(dojo.byId('clearPreviousObservations'), 'click', function () {
+						streamLayer.clear();
+					});
+					on(dojo.byId('toggleSpatialFilter'), 'click', toggleSpatialFilter);
+					on(dojo.byId('applyFilter'), 'click', setExpressionFilter);
+					on(drawTools, 'draw-end', function (evt) {
+						drawTools.deactivate();
+						setSpatialFilter(evt.geometry);
+						dojo.byId('toggleSpatialFilter').innerText = 'Clear Spatial Filter';
+					});
+				}
+
+				/*************************************************
+				 *
+				 * Functions to add and remove Stream Layer
+				 *
+				 *************************************************/
+				function toggleStreamLayer() {
+					streamLayer ? removeStreamLayer() : addStreamLayer();
+				}
+
+				function addStreamLayer() {
+					//url to stream service
+					var svcUrl = dojo.byId('streamServiceUrl').value;
+
+					//construct Stream Layer
+					streamLayer = new StreamLayer(svcUrl, {
+						purgeOptions: { displayCount: 10000 },
+					});
+
+					//When layer loads, register listeners for layer events and add layer to map
+					streamLayer.on('load', function () {
+						//Connect and Disconnect events
+						streamLayer.on('connect', processConnect);
+						streamLayer.on('disconnect', processDisconnect);
+
+						//FilterChange event
+						streamLayer.on('filter-change', processFilterChange);
+
+						//Add layer to map
+						map.addLayer(streamLayer);
+					});
+				}
+
+				function removeStreamLayer() {
+					if (streamLayer) {
+						map.removeLayer(streamLayer);
+						streamLayer = null;
+						map.graphics.clear();
+					}
+				}
+
+				/*********************************************************
+				 *
+				 * Stream layer event handlers
+				 *
+				 *********************************************************/
+				function processConnect() {
+					dojo.byId('toggleStreamLayer').innerText = 'Remove Stream Layer';
+					dojo.byId('toggleSpatialFilter').value = 'Apply Spatial Filter';
+
+					domClass.remove(
+						dojo.byId('toggleSpatialFilter'),
+						'esri-button--disabled'
+					);
+					domClass.remove(
+						dojo.byId('clearPreviousObservations'),
+						'esri-button--disabled'
+					);
+				}
+
+				function processDisconnect() {
+					dojo.byId('toggleStreamLayer').innerText = 'Add Stream Layer';
+					dojo.byId('toggleSpatialFilter').value = 'Apply Spatial Filter';
+
+					domClass.add(
+						dojo.byId('toggleSpatialFilter'),
+						'esri-button--disabled'
+					);
+					domClass.add(
+						dojo.byId('clearPreviousObservations'),
+						'esri-button--disabled'
+					);
+				}
+
+				function processFilterChange(evt) {
+					//clear layer graphics
+					streamLayer.clear();
+
+					//the event contains a filter property that is the current filter set on the service
+					//update map graphic to show current spatial filter
+					var bbox = evt.filter.geometry;
+					map.graphics.clear();
+					if (bbox) {
+						map.graphics.add(
+							new Graphic(
+								bbox,
+								new SimpleFillSymbol(
+									SimpleFillSymbol.STYLE_NULL,
+									new SimpleLineSymbol(
+										SimpleLineSymbol.STYLE_SOLID,
+										new Color([5, 112, 176]),
+										2
+									),
+									new Color([5, 112, 176, 0])
+								)
+							)
+						);
+					}
+				}
+
+				/************************************************
+				 *
+				 * Functions to set and clear spatial/expression filter
+				 *
+				 ************************************************/
+				function toggleSpatialFilter() {
+					var currentSpatialFilter = null;
+					if (streamLayer) {
+						currentSpatialFilter = streamLayer.getFilter().geometry;
+					}
+					if (!currentSpatialFilter) {
+						drawTools.activate(Draw.EXTENT);
+					} else {
+						setSpatialFilter(null);
+						dojo.byId('toggleSpatialFilter').value = 'Apply Spatial Filter';
+					}
+				}
+
+				//Set spatial filter on stream layer. Setting to null clears filter
+				function setSpatialFilter(bbox) {
+					if (streamLayer) streamLayer.setGeometryDefinition(bbox);
+				}
+
+				function setExpressionFilter() {
+					const filterValue = dojo.byId('filter').value;
+					if (streamLayer) streamLayer.setDefinitionExpression(filterValue);
+				}
+
+				init();
+			});
+		</script>
+	</head>
+
+	<body class="flat">
+		<div id="map"></div>
+		<div class="collapser">
+			<i id="collapserIcon" class="flat-chevron-right"></i>
+			<i id="expanderIcon" class="flat-chevron-left"></i>
+		</div>
+		<div id="controls">
+			<section>
+				<div class="config-header">
+					<h2>Layers</h2>
+					<div class="header-actions-group">
+						<i class="fa"></i>
+					</div>
+				</div>
+				<div class="config-content">
+					<div class="input-group input-group-full">
+						<input
+							type="text"
+							id="streamServiceUrl"
+							value="https://geoeventsample1.esri.com/server/rest/services/FAAStream/StreamServer"
+						/>
+					</div>
+					<div class="input-group input-group-full">
+						<button id="toggleStreamLayer" class="esri-button">
+							Add Stream Layer
+						</button>
+					</div>
+					<div class="input-group input-group-full">
+						<button
+							id="toggleSpatialFilter"
+							class="esri-button esri-button--disabled"
+						>
+							Apply Spatial Filter
+						</button>
+					</div>
+					<div class="input-group input-group-full">
+						<button
+							id="clearPreviousObservations"
+							class="esri-button esri-button--disabled"
+						>
+							Clear Previous Observations
+						</button>
+					</div>
+					<div class="input-group input-group-full">
+						<span>
+							<button id="applyFilter" class="esri-button">Apply</button>
+						</span>
+						<input id="filter" type="text" placeholder="Where clause" />
+					</div>
+				</div>
+			</section>
+		</div>
+	</body>
+</html>
