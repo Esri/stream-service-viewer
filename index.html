@@ -53,6 +53,22 @@
           drawTools = new Draw(map);
 
           //connect click events to UI buttons
+          on(
+            dojo.byId("controls"),
+            on.selector(".config-header", "click"),
+            function(e) {
+              if (e.target.type !== "checkbox") {
+                var sectionWrapper = e.selectorTarget.parentNode;
+
+                domClass.toggle(sectionWrapper, "section-hidden");
+              }
+            }
+          );
+          on(
+            document.getElementsByClassName("collapser")[0],
+            "click",
+            togglePanel
+          );
           on(dojo.byId("toggleStreamLayer"), "click", toggleStreamLayer);
           on(dojo.byId("clearPreviousObservations"), "click", function() {
             streamLayer.clear();
@@ -64,6 +80,18 @@
             drawSpatialFilter(spatialFilter);
             dojo.byId("toggleSpatialFilter").innerText = "Clear Spatial Filter";
           });
+        }
+
+        /*************************************************
+         *
+         * Functions to update the UI
+         *
+         *************************************************/
+        function togglePanel() {
+          domClass.toggle(
+            document.getElementsByTagName("body")[0],
+            "panel-collapsed"
+          );
         }
 
         /*************************************************
@@ -82,9 +110,6 @@
           // Get filters
           var expressionFilter = dojo.byId("expressionFilter").value;
           var geometryFilter = spatialFilter;
-
-          console.log(spatialFilter);
-          console.log(expressionFilter);
 
           //construct Stream Layer
           streamLayer = new StreamLayer(svcUrl, {
