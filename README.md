@@ -2,6 +2,13 @@
 
 Sample JavaScript Stream Service Viewer.
 
+## Features
+The Sample JavaScript Service Viewer app allows users to:
+* Subscribe to an ArcGIS GoeEvent Server or an ArcGIS Velocity Stream Service by specifying its URL, and render it as a client stream layer on a basemap.
+* Apply a server-side attirbute where clause filter.
+* Apply a server-side spatial filter.
+* Clear observations.
+
 ## Issues
 
 Find a bug or want to request a new feature?  Please let us know by submitting an issue.
