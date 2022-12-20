@@ -43,7 +43,7 @@
         on,
         domClass
       ) {
-        var map, drawTools, streamLayer, spatialFilter;
+        var map, drawTools, streamLayer, spatialFilter, expressionFilter;
 
         function init() {
           map = new Map("map", {
@@ -73,11 +73,13 @@
           on(dojo.byId("clearPreviousObservations"), "click", function() {
             streamLayer.clear();
           });
+          on(dojo.byId("applyWhereClause"), "click", applyWhereClause);
           on(dojo.byId("toggleSpatialFilter"), "click", toggleSpatialFilter);
           on(drawTools, "draw-end", function(evt) {
             drawTools.deactivate();
             spatialFilter = evt.geometry;
             drawSpatialFilter(spatialFilter);
+            if (streamLayer) resetStreamLayer();
             dojo.byId("toggleSpatialFilter").innerText = "Clear Spatial Filter";
           });
         }
@@ -107,14 +109,10 @@
           //url to stream service
           var svcUrl = dojo.byId("streamServiceUrl").value;
 
-          // Get filters
-          var expressionFilter = dojo.byId("expressionFilter").value;
-          var geometryFilter = spatialFilter;
-
           //construct Stream Layer
           streamLayer = new StreamLayer(svcUrl, {
             definitionExpression: expressionFilter,
-            geometryDefinition: geometryFilter,
+            geometryDefinition: spatialFilter,
             purgeOptions: { displayCount: 10000 }
           });
 
@@ -150,6 +148,12 @@
           }
         }
 
+        function resetStreamLayer() {
+          // Add and remove stream layer to reset its properties server side
+          removeStreamLayer();
+          addStreamLayer();
+        }
+
         /*********************************************************
          *
          * Stream layer event handlers
@@ -159,10 +163,6 @@
           dojo.byId("toggleStreamLayer").innerText = "Remove Stream Layer";
           dojo.byId("toggleSpatialFilter").value = "Apply Spatial Filter";
 
-          domClass.add(
-            dojo.byId("toggleSpatialFilter"),
-            "esri-button--disabled"
-          );
           domClass.remove(
             dojo.byId("clearPreviousObservations"),
             "esri-button--disabled"
@@ -173,10 +173,6 @@
           dojo.byId("toggleStreamLayer").innerText = "Add Stream Layer";
           dojo.byId("toggleSpatialFilter").value = "Apply Spatial Filter";
 
-          domClass.remove(
-            dojo.byId("toggleSpatialFilter"),
-            "esri-button--disabled"
-          );
           domClass.add(
             dojo.byId("clearPreviousObservations"),
             "esri-button--disabled"
@@ -188,10 +184,16 @@
          * Functions to set and clear spatial/expression filter
          *
          ************************************************/
+        function applyWhereClause() {
+          expressionFilter = dojo.byId("expressionFilter").value;
+          if (streamLayer) resetStreamLayer();
+        }
+
         function toggleSpatialFilter() {
           if (spatialFilter) {
             spatialFilter = null;
             map.graphics.clear();
+            if (streamLayer) resetStreamLayer();
             dojo.byId("toggleSpatialFilter").innerText = "Apply Spatial Filter";
           } else {
             drawTools.activate(Draw.EXTENT);
@@ -246,15 +248,8 @@
             />
           </div>
           <div class="input-group input-group-full">
-            <input
-              id="expressionFilter"
-              type="text"
-              placeholder="Where clause"
-            />
-          </div>
-          <div class="input-group input-group-full">
-            <button id="toggleSpatialFilter" class="esri-button">
-              Apply Spatial Filter
+            <button id="toggleStreamLayer" class="esri-button">
+              Add Stream Layer
             </button>
           </div>
           <div class="input-group input-group-full">
@@ -266,8 +261,18 @@
             </button>
           </div>
           <div class="input-group input-group-full">
-            <button id="toggleStreamLayer" class="esri-button">
-              Add Stream Layer
+            <span class="input-group-button">
+              <button id="applyWhereClause" class="btn esri-button">Apply</button>
+            </span>
+            <input
+              id="expressionFilter"
+              type="text"
+              placeholder="Where clause"
+            />
+          </div>
+          <div class="input-group input-group-full">
+            <button id="toggleSpatialFilter" class="esri-button">
+              Apply Spatial Filter
             </button>
           </div>
         </div>
