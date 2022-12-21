@@ -79,7 +79,7 @@
             drawTools.deactivate();
             spatialFilter = evt.geometry;
             drawSpatialFilter(spatialFilter);
-            if (streamLayer) resetStreamLayer();
+            if (streamLayer) streamLayer.setGeometryDefinition(spatialFilter);
             dojo.byId("toggleSpatialFilter").innerText = "Clear Spatial Filter";
           });
         }
@@ -148,12 +148,6 @@
           }
         }
 
-        function resetStreamLayer() {
-          // Add and remove stream layer to reset its properties server side
-          removeStreamLayer();
-          addStreamLayer();
-        }
-
         /*********************************************************
          *
          * Stream layer event handlers
@@ -186,14 +180,14 @@
          ************************************************/
         function applyWhereClause() {
           expressionFilter = dojo.byId("expressionFilter").value;
-          if (streamLayer) resetStreamLayer();
+          if (streamLayer) streamLayer.setDefinitionExpression(expressionFilter || null);
         }
 
         function toggleSpatialFilter() {
           if (spatialFilter) {
             spatialFilter = null;
             map.graphics.clear();
-            if (streamLayer) resetStreamLayer();
+            streamLayer.setGeometryDefinition(null);
             dojo.byId("toggleSpatialFilter").innerText = "Apply Spatial Filter";
           } else {
             drawTools.activate(Draw.EXTENT);
