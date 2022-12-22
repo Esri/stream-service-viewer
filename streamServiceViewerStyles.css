@@ -186,6 +186,16 @@ section:first-of-type .config-header {
 	width: 100%;
 }
 
+.input-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.prev-element {
+	margin-right: 5px;
+}
+
 .flat .dijitDropDownButton .dijitButtonNode {
 	padding: 0;
 	border: none;

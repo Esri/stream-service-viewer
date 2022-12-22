@@ -97,13 +97,17 @@
             streamLayer.clear();
           });
           on(dojo.byId("applyWhereClause"), "click", applyWhereClause);
-          on(dojo.byId("toggleSpatialFilter"), "click", toggleSpatialFilter);
+          on(dojo.byId("applySpatialFilter"), "click", applySpatialFilter);
+          on(dojo.byId("clearSpatialFilter"), "click", clearSpatialFilter);
           on(drawTools, "draw-end", function(evt) {
             drawTools.deactivate();
             spatialFilter = evt.geometry;
             drawSpatialFilter(spatialFilter);
             if (streamLayer) streamLayer.setGeometryDefinition(spatialFilter);
-            dojo.byId("toggleSpatialFilter").innerText = "Clear Spatial Filter";
+            domAttr.remove(
+              dojo.byId("clearSpatialFilter"),
+              "disabled"
+            );
           });
         }
 
@@ -206,21 +210,18 @@
          *********************************************************/
         function processConnect() {
           dojo.byId("toggleStreamLayer").innerText = "Remove Stream Layer";
-          dojo.byId("toggleSpatialFilter").value = "Apply Spatial Filter";
-
-          domClass.remove(
+          domAttr.remove(
             dojo.byId("clearPreviousObservations"),
-            "esri-button--disabled"
+            "disabled"
           );
         }
 
         function processDisconnect() {
           dojo.byId("toggleStreamLayer").innerText = "Add Stream Layer";
-          dojo.byId("toggleSpatialFilter").value = "Apply Spatial Filter";
-
-          domClass.add(
+          domClass.set(
             dojo.byId("clearPreviousObservations"),
-            "esri-button--disabled"
+            "disabled",
+            "true"
           );
         }
 
@@ -262,20 +263,25 @@
             streamLayer.setDefinitionExpression(expressionFilter || null);
         }
 
-        function toggleSpatialFilter() {
-          if (spatialFilter) {
-            spatialFilter = null;
-            map.graphics.clear();
-            streamLayer.setGeometryDefinition(null);
-            dojo.byId("toggleSpatialFilter").innerText = "Apply Spatial Filter";
-          } else {
-            drawTools.activate(Draw.EXTENT);
-          }
+        function applySpatialFilter() {
+          drawTools.activate(Draw.EXTENT);
+        }
+
+        function clearSpatialFilter() {
+          spatialFilter = null;
+          map.graphics.clear();
+          streamLayer.setGeometryDefinition(null);
+          domAttr.set(
+            dojo.byId("clearSpatialFilter"),
+            "disabled",
+            "true"
+          );
         }
 
         function drawSpatialFilter(bbox) {
           //update map graphic to show current spatial filter
           if (bbox) {
+            map.graphics.clear();
             map.graphics.add(
               new Graphic(
                 bbox,
@@ -341,7 +347,7 @@
             >
           </div>
           <div class="input-group input-group-full">
-            <calcite-button id="clearPreviousObservations" width="full"
+            <calcite-button id="clearPreviousObservations" width="full" disabled="true"
               >Clear Previous Observations</calcite-button
             >
           </div>
@@ -356,10 +362,17 @@
               >
             </calcite-input>
           </div>
-          <div class="input-group input-group-full">
-            <calcite-button id="toggleSpatialFilter" width="full"
-              >Apply Spatial Filter</calcite-button
-            >
+          <div class="input-group">
+            <div class="input-row">
+              <calcite-button id="applySpatialFilter" class="prev-element"
+                >Apply Spatial Filter</calcite-button
+              >
+              <calcite-button
+                id="clearSpatialFilter"
+                disabled="true"
+                >Clear Spatial Filter</calcite-button
+              >
+            </div>
           </div>
         </div>
       </section>
