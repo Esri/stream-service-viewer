@@ -13,272 +13,223 @@
  * limitations under the License.
  */
 
- @import url('./flat/flat.css');
+@import url("./flat/flat.css");
 
 html,
 body {
-	height: 100%;
-	width: 100%;
-	margin: 0;
-	padding: 0;
-	font-family: sans-serif;
-	font-size: 12px;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-	position: relative;
-	overflow: hidden;
+  position: relative;
+  overflow: hidden;
 }
 
 #map {
-	height: 100%;
-	width: calc(100% - 300px);
-	float: left;
-	z-index: -1;
+  height: 100%;
+  width: calc(100% - 300px);
+  float: left;
+  z-index: -1;
 }
 
 .basemapGallery-container {
-	position: absolute;
-	top: 20px;
-	left: 70px;
-	z-index: 50;
+  position: absolute;
+  top: 20px;
+  left: 60px;
+  z-index: 50;
+  opacity: 0.7;
 }
 
 .dijitTitlePaneTitle {
-	background: white;
-	padding: 10px;
-	border: 1px solid #b8b8b8;
-	border-radius: 5px;
+  background: white;
+  padding: 10px;
+  border: 1px solid #b8b8b8;
+  border-radius: 5px;
 }
 
 .flat .dijitContentPane {
-	border: 1px solid #b8b8b8;
-	border-radius: 5px;
+  border: 1px solid #b8b8b8;
+  border-radius: 5px;
 }
 
 #controls {
-	box-sizing: border-box;
-	float: left;
-	width: 300px;
-	height: 100%;
-	background: #fafafa;
-	color: #515151;
-	border-left: 1px solid #b8b8b8;
-	position: relative;
-	overflow-y: auto;
+  box-sizing: border-box;
+  float: left;
+  width: 300px;
+  height: 100%;
+  background: #fafafa;
+  color: #515151;
+  border-left: 1px solid #b8b8b8;
+  position: relative;
+  overflow-y: auto;
 }
 
 .collapser {
-	position: absolute;
-	width: 2.7rem;
-	height: 2.7rem;
-	right: 300px;
-	font-size: 2.7rem;
-	background: #fafafa;
-	cursor: pointer;
+  position: absolute;
+  width: 2.7rem;
+  height: 2.7rem;
+  right: 300px;
+  font-size: 2.7rem;
+  background: #fafafa;
+  cursor: pointer;
 }
 
 .panel-collapsed .collapser {
-	right: 0;
+  right: 0;
 }
 
 #expanderIcon {
-	display: none;
+  display: none;
 }
 
 .panel-collapsed #map {
-	width: calc(100% - 1px);
+  width: calc(100% - 1px);
 }
 
 .panel-collapsed #controls {
-	width: 0;
+  width: 0;
 }
 
 .panel-collapsed #controls section {
-	overflow: hidden;
+  overflow: hidden;
 }
 
 .panel-collapsed #expanderIcon {
-	display: inline-block;
+  display: inline-block;
 }
 
 .panel-collapsed #collapserIcon {
-	display: none;
+  display: none;
 }
 
 .panel-collapsed #timeSlider {
-	width: 100% !important;
+  width: 100% !important;
 }
 
 .config-header {
-	padding: 8px 10px;
-	background: linear-gradient(to right, #fff, #fafafa);
-	border: 1px solid #b8b8b8;
-	border-left: none;
-	border-right: none;
-	display: flex;
-	cursor: pointer;
+  padding: 8px 10px;
+  background: linear-gradient(to right, #fff, #fafafa);
+  border: 1px solid #b8b8b8;
+  border-left: none;
+  border-right: none;
+  display: flex;
+  cursor: pointer;
 }
 
 .config-header:hover {
-	background: linear-gradient(to right, #fafafa, #f6f6f6);
+  background: linear-gradient(to right, #fafafa, #f6f6f6);
 }
 
 section:first-of-type .config-header {
-	border-top: none;
+  border-top: none;
 }
 
 .config-header h2 {
-	flex: 1 0 auto;
-	margin: 0;
-	font-size: 1.2rem;
-	font-weight: normal;
+  flex: 1 0 auto;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: normal;
 }
 
 .config-content {
-	padding: 5px 10px;
-	display: flex;
-	justify-content: space-between;
-	flex-wrap: wrap;
-	overflow: hidden;
-	max-height: 500px;
-	transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 5px 10px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  overflow: hidden;
+  max-height: 500px;
+  transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .section-hidden .config-content {
-	padding: 0 10px;
-	max-height: 0;
+  padding: 0 10px;
+  max-height: 0;
 }
 
 .header-actions-group i {
-	cursor: pointer;
-	color: #a6a6a6;
+  cursor: pointer;
+  color: #a6a6a6;
 }
 
 .header-actions-group .fa::before {
-	content: '\f077';
+  content: "\f077";
 }
 
 .section-hidden .header-actions-group .fa::before {
-	content: '\f078';
+  content: "\f078";
 }
 
 .header-actions-group i:hover {
-	color: #313131;
+  color: #313131;
 }
 
 .header-actions-group .dijitDropDownButton {
-	margin: 0;
+  margin: 0;
 }
 
 .header-actions-group .dijitButtonNode {
-	border: none;
+  border: none;
 }
 
 .header-actions-group .dijitArrowButtonInner {
-	display: none;
+  display: none;
 }
 
 .input-group {
-	display: flex;
-	flex-direction: column;
-	text-align: center;
-	justify-content: center;
-	margin: 5px 0;
+  margin: 5px 0;
 }
 
 .input-group-full {
-	width: 100%;
-	flex-direction: row-reverse;
-	text-align: left;
-}
-
-.input-group-full ~ .input-row {
-	width: calc(100% - 80px);
-	margin-left: 80px;
-}
-
-.input-group-full .input-group-nested {
-	display: flex;
-	flex-direction: column-reverse;
-	text-align: center;
-	width: calc(100% - 80px) !important;
-}
-
-.input-group-full .input-group-nested input {
-	width: 80% !important;
-}
-
-.input-group-full input {
-	/*width: calc(100% - 85px) !important;*/
-	width: 100% !important;
+  width: 100%;
 }
 
 .input-row {
-	display: flex;
-	/*flex-wrap: wrap;*/
-	justify-content: space-between;
-	align-items: center;
-	width: 100%;
-	margin: 5px 0;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
 }
 
-.input-row .input-group {
-	width: 33%;
-}
-
-.input-row-header-labeled {
-	margin-left: 90px;
-	justify-content: space-around;
-}
-
-.input-row-header {
-	margin: 2px 0;
-}
-
-.input-row-header input {
-	flex: 1 0 auto;
-	margin: 1px 2px;
-}
-
-.input-row-header input[type='checkbox'] {
-	flex: 0 0 auto;
+.prev-element {
+  margin-right: 5px;
 }
 
 .flat .dijitDropDownButton .dijitButtonNode {
-	padding: 0;
-	border: none;
-	background: transparent;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .flat .dijitButtonText {
-	padding: 0;
-	line-height: 0;
+  padding: 0;
+  line-height: 0;
 }
 
 .flat .dijitDownArrowButton {
-	line-height: 0;
+  line-height: 0;
 }
 
 .flat .dijitTooltipContainer {
-	border: 1px solid #b8b8b8;
-	background: #fafafa;
-	color: #515151;
-	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-	border-radius: 2px;
+  border: 1px solid #b8b8b8;
+  background: #fafafa;
+  color: #515151;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 2px;
 }
 
 .flat .dijitTooltipContainer .input-group-full input {
-	width: calc(100% - 135px) !important;
+  width: calc(100% - 135px) !important;
 }
 
 .flat .dijitTooltipFocusNode {
-	padding: 10px;
+  padding: 10px;
 }
 
 .flat .dijitTooltipFocusNode > div {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: space-between;
-	width: 250px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  width: 250px;
 }

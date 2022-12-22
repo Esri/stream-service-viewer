@@ -5,17 +5,23 @@
     <title>Stream Service Viewer</title>
     <link
       rel="stylesheet"
-      href="https://js.arcgis.com/4.14/esri/themes/light/main.css"
+      href="https://js.arcgis.com/3.42/esri/css/esri.css"
     />
     <link
       rel="stylesheet"
-      href="https://js.arcgis.com/3.42/esri/css/esri.css"
+      type="text/css"
+      href="https://js.arcgis.com/calcite-components/1.0.0-beta.97/calcite.css"
     />
     <link rel="stylesheet" href="./streamServiceViewerStyles.css" />
     <script src="https://js.arcgis.com/3.42/"></script>
     <script src="https://use.fontawesome.com/9482a0b1d1.js"></script>
+    <script
+      type="module"
+      src="https://js.arcgis.com/calcite-components/1.0.0-beta.97/calcite.esm.js"
+    ></script>
     <script>
       require([
+        "dojo/parser",
         "esri/map",
         "esri/toolbars/draw",
         "esri/layers/StreamLayer",
@@ -24,12 +30,17 @@
         "esri/symbols/SimpleFillSymbol",
         "esri/symbols/SimpleLineSymbol",
         "esri/dijit/PopupTemplate",
+        "esri/dijit/BasemapGallery",
         "dojo/_base/array",
         "dojo/_base/Color",
         "dojo/on",
         "dojo/dom-class",
+        "dojo/dom-attr",
+        "dijit/TitlePane",
+        "dijit/layout/ContentPane",
         "dojo/domReady!"
       ], function(
+        parser,
         Map,
         Draw,
         StreamLayer,
@@ -38,17 +49,29 @@
         SimpleFillSymbol,
         SimpleLineSymbol,
         PopupTemplate,
+        BasemapGallery,
         array,
         Color,
         on,
-        domClass
+        domClass,
+        domAttr
       ) {
         var map, drawTools, streamLayer, spatialFilter, expressionFilter;
+
+        parser.parse();
 
         function init() {
           map = new Map("map", {
             basemap: "gray-vector"
           });
+
+          new BasemapGallery(
+            {
+              showArcGISBasemaps: true,
+              map: map
+            },
+            "basemapGallery"
+          ).startup();
 
           drawTools = new Draw(map);
 
@@ -74,13 +97,17 @@
             streamLayer.clear();
           });
           on(dojo.byId("applyWhereClause"), "click", applyWhereClause);
-          on(dojo.byId("toggleSpatialFilter"), "click", toggleSpatialFilter);
+          on(dojo.byId("applySpatialFilter"), "click", applySpatialFilter);
+          on(dojo.byId("clearSpatialFilter"), "click", clearSpatialFilter);
           on(drawTools, "draw-end", function(evt) {
             drawTools.deactivate();
             spatialFilter = evt.geometry;
             drawSpatialFilter(spatialFilter);
-            if (streamLayer) resetStreamLayer();
-            dojo.byId("toggleSpatialFilter").innerText = "Clear Spatial Filter";
+            if (streamLayer) streamLayer.setGeometryDefinition(spatialFilter);
+            domAttr.remove(
+              dojo.byId("clearSpatialFilter"),
+              "disabled"
+            );
           });
         }
 
@@ -94,6 +121,25 @@
             document.getElementsByTagName("body")[0],
             "panel-collapsed"
           );
+        }
+
+        function createToaster(title, message, color) {
+          var calciteAlert = document.createElement("calcite-alert");
+          var alertTitle = document.createElement("div");
+          var alertMessage = document.createElement("div");
+
+          calciteAlert.setAttribute("open", "true");
+          calciteAlert.setAttribute("color", color);
+          calciteAlert.setAttribute("placement", "bottom-end");
+          alertTitle.setAttribute("slot", "title");
+          alertMessage.setAttribute("slot", "message");
+
+          alertTitle.innerText = title;
+          alertMessage.innerText = message;
+
+          calciteAlert.appendChild(alertTitle);
+          calciteAlert.appendChild(alertMessage);
+          document.getElementsByTagName("body")[0].appendChild(calciteAlert);
         }
 
         /*************************************************
@@ -121,6 +167,15 @@
             //Connect and Disconnect events
             streamLayer.on("connect", processConnect);
             streamLayer.on("disconnect", processDisconnect);
+            streamLayer.on("message", processMessage);
+            streamLayer.on("connection-error", function() {
+              createToaster(
+                "Alert",
+                "Error connecting to the Stream Service",
+                "red"
+              );
+              removeStreamLayer();
+            });
 
             // Add popup template
             var fieldInfos = array.map(streamLayer.fields, function(field) {
@@ -148,12 +203,6 @@
           }
         }
 
-        function resetStreamLayer() {
-          // Add and remove stream layer to reset its properties server side
-          removeStreamLayer();
-          addStreamLayer();
-        }
-
         /*********************************************************
          *
          * Stream layer event handlers
@@ -161,22 +210,46 @@
          *********************************************************/
         function processConnect() {
           dojo.byId("toggleStreamLayer").innerText = "Remove Stream Layer";
-          dojo.byId("toggleSpatialFilter").value = "Apply Spatial Filter";
-
-          domClass.remove(
+          domAttr.remove(
             dojo.byId("clearPreviousObservations"),
-            "esri-button--disabled"
+            "disabled"
           );
         }
 
         function processDisconnect() {
           dojo.byId("toggleStreamLayer").innerText = "Add Stream Layer";
-          dojo.byId("toggleSpatialFilter").value = "Apply Spatial Filter";
-
-          domClass.add(
+          domClass.set(
             dojo.byId("clearPreviousObservations"),
-            "esri-button--disabled"
+            "disabled",
+            "true"
           );
+        }
+
+        function processMessage(msg) {
+          if (msg.error) {
+            createToaster("Alert", msg.error[0], "red");
+          } else if (msg.filter) {
+            if (
+              msg.filter.hasOwnProperty("where") ||
+              msg.filter.hasOwnProperty("geometry")
+            ) {
+              console.log(msg.filter.where || "");
+              createToaster(
+                "Success",
+                "Successfully updated the filter. \nAttribute Filter: " +
+                  (msg.filter.where || "") +
+                  "\nSpatial Filter: " +
+                  (msg.filter.geometry || ""),
+                "green"
+              );
+            } else {
+              createToaster(
+                "Success",
+                "Successfully updated the filter. \n\nAttribute Filter: \n Spatial Filter: ",
+                "green"
+              );
+            }
+          }
         }
 
         /************************************************
@@ -186,23 +259,29 @@
          ************************************************/
         function applyWhereClause() {
           expressionFilter = dojo.byId("expressionFilter").value;
-          if (streamLayer) resetStreamLayer();
+          if (streamLayer)
+            streamLayer.setDefinitionExpression(expressionFilter || null);
         }
 
-        function toggleSpatialFilter() {
-          if (spatialFilter) {
-            spatialFilter = null;
-            map.graphics.clear();
-            if (streamLayer) resetStreamLayer();
-            dojo.byId("toggleSpatialFilter").innerText = "Apply Spatial Filter";
-          } else {
-            drawTools.activate(Draw.EXTENT);
-          }
+        function applySpatialFilter() {
+          drawTools.activate(Draw.EXTENT);
+        }
+
+        function clearSpatialFilter() {
+          spatialFilter = null;
+          map.graphics.clear();
+          streamLayer.setGeometryDefinition(null);
+          domAttr.set(
+            dojo.byId("clearSpatialFilter"),
+            "disabled",
+            "true"
+          );
         }
 
         function drawSpatialFilter(bbox) {
           //update map graphic to show current spatial filter
           if (bbox) {
+            map.graphics.clear();
             map.graphics.add(
               new Graphic(
                 bbox,
@@ -226,7 +305,21 @@
   </head>
 
   <body class="flat">
-    <div id="map"></div>
+    <div id="map">
+      <div class="basemapGallery-container">
+        <div
+          data-dojo-type="dijit/TitlePane"
+          data-dojo-props="title:'Switch Basemap', open:false"
+        >
+          <div
+            data-dojo-type="dijit/layout/ContentPane"
+            style="width:380px; height:280px; overflow:auto;"
+          >
+            <div id="basemapGallery"></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="collapser">
       <i id="collapserIcon" class="flat-chevron-right"></i>
       <i id="expanderIcon" class="flat-chevron-left"></i>
@@ -241,41 +334,45 @@
         </div>
         <div class="config-content">
           <div class="input-group input-group-full">
-            <input
+            <calcite-input
               type="text"
               id="streamServiceUrl"
               placeholder="Stream layer url"
-            />
+              value="https://geoeventsample1.esri.com/server/rest/services/FAAStream/StreamServer"
+            ></calcite-input>
           </div>
           <div class="input-group input-group-full">
-            <button id="toggleStreamLayer" class="esri-button">
-              Add Stream Layer
-            </button>
-          </div>
-          <div class="input-group input-group-full">
-            <button
-              id="clearPreviousObservations"
-              class="esri-button esri-button--disabled"
+            <calcite-button id="toggleStreamLayer" width="full"
+              >Add Stream Layer</calcite-button
             >
-              Clear Previous Observations
-            </button>
           </div>
           <div class="input-group input-group-full">
-            <span class="input-group-button">
-              <button id="applyWhereClause" class="btn esri-button">
-                Apply
-              </button>
-            </span>
-            <input
+            <calcite-button id="clearPreviousObservations" width="full" disabled="true"
+              >Clear Previous Observations</calcite-button
+            >
+          </div>
+          <div class="input-group input-group-full">
+            <calcite-input
               id="expressionFilter"
               type="text"
-              placeholder="Where clause"
-            />
+              placeholder="Attribute Filter (where clause)"
+            >
+              <calcite-button id="applyWhereClause" slot="action"
+                >Apply</calcite-button
+              >
+            </calcite-input>
           </div>
-          <div class="input-group input-group-full">
-            <button id="toggleSpatialFilter" class="esri-button">
-              Apply Spatial Filter
-            </button>
+          <div class="input-group">
+            <div class="input-row">
+              <calcite-button id="applySpatialFilter" class="prev-element"
+                >Apply Spatial Filter</calcite-button
+              >
+              <calcite-button
+                id="clearSpatialFilter"
+                disabled="true"
+                >Clear Spatial Filter</calcite-button
+              >
+            </div>
           </div>
         </div>
       </section>
