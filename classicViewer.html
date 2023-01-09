@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+  <head lang="en">
+    <meta charset="UTF-8" />
+    <title>Stream Service Viewer</title>
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/3.42/esri/css/esri.css"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://js.arcgis.com/calcite-components/1.0.0-beta.97/calcite.css"
+    />
+    <link rel="stylesheet" href="./streamServiceViewerStyles.css" />
+    <script src="https://js.arcgis.com/3.42/"></script>
+    <script src="https://use.fontawesome.com/9482a0b1d1.js"></script>
+    <script
+      type="module"
+      src="https://js.arcgis.com/calcite-components/1.0.0-beta.97/calcite.esm.js"
+    ></script>
+    <script>
+      require([
+        "dojo/parser",
+        "esri/map",
+        "esri/toolbars/draw",
+        "esri/layers/StreamLayer",
+        "esri/InfoTemplate",
+        "esri/graphic",
+        "esri/symbols/SimpleFillSymbol",
+        "esri/symbols/SimpleLineSymbol",
+        "esri/dijit/PopupTemplate",
+        "esri/dijit/BasemapGallery",
+        "dojo/_base/array",
+        "dojo/_base/Color",
+        "dojo/on",
+        "dojo/dom-class",
+        "dojo/dom-attr",
+        "dijit/TitlePane",
+        "dijit/layout/ContentPane",
+        "dojo/domReady!"
+      ], function(
+        parser,
+        Map,
+        Draw,
+        StreamLayer,
+        InfoTemplate,
+        Graphic,
+        SimpleFillSymbol,
+        SimpleLineSymbol,
+        PopupTemplate,
+        BasemapGallery,
+        array,
+        Color,
+        on,
+        domClass,
+        domAttr
+      ) {
+        var map, drawTools, streamLayer, spatialFilter, expressionFilter;
+
+        parser.parse();
+
+        function init() {
+          map = new Map("map", {
+            basemap: "gray-vector"
+          });
+
+          new BasemapGallery(
+            {
+              showArcGISBasemaps: true,
+              map: map
+            },
+            "basemapGallery"
+          ).startup();
+
+          drawTools = new Draw(map);
+
+          //connect click events to UI buttons
+          on(
+            dojo.byId("controls"),
+            on.selector(".config-header", "click"),
+            function(e) {
+              if (e.target.type !== "checkbox") {
+                var sectionWrapper = e.selectorTarget.parentNode;
+
+                domClass.toggle(sectionWrapper, "section-hidden");
+              }
+            }
+          );
+          on(
+            document.getElementsByClassName("collapser")[0],
+            "click",
+            togglePanel
+          );
+          on(dojo.byId("toggleStreamLayer"), "click", toggleStreamLayer);
+          on(dojo.byId("clearPreviousObservations"), "click", function() {
+            if (streamLayer) streamLayer.clear();
+          });
+          on(dojo.byId("applyWhereClause"), "click", applyWhereClause);
+          on(dojo.byId("applySpatialFilter"), "click", applySpatialFilter);
+          on(dojo.byId("clearSpatialFilter"), "click", clearSpatialFilter);
+          on(drawTools, "draw-end", function(evt) {
+            drawTools.deactivate();
+            spatialFilter = evt.geometry;
+            drawSpatialFilter(spatialFilter);
+            if (streamLayer) streamLayer.setGeometryDefinition(spatialFilter);
+            domAttr.remove(dojo.byId("clearSpatialFilter"), "disabled");
+          });
+          on(dojo.byId("switchViewer"), "click", function() {
+            window.location.href = "./newViewer.html";
+          });
+        }
+
+        /*************************************************
+         *
+         * Functions to update the UI
+         *
+         *************************************************/
+        function togglePanel() {
+          domClass.toggle(
+            document.getElementsByTagName("body")[0],
+            "panel-collapsed"
+          );
+        }
+
+        function createToaster(title, message, color) {
+          var calciteAlert = document.createElement("calcite-alert");
+          var alertTitle = document.createElement("div");
+          var alertMessage = document.createElement("div");
+
+          calciteAlert.setAttribute("open", "true");
+          calciteAlert.setAttribute("color", color);
+          calciteAlert.setAttribute("placement", "bottom-end");
+          alertTitle.setAttribute("slot", "title");
+          alertMessage.setAttribute("slot", "message");
+
+          alertTitle.innerText = title;
+          alertMessage.innerText = message;
+
+          calciteAlert.appendChild(alertTitle);
+          calciteAlert.appendChild(alertMessage);
+          document.getElementsByTagName("body")[0].appendChild(calciteAlert);
+        }
+
+        /*************************************************
+         *
+         * Functions to add and remove Stream Layer
+         *
+         *************************************************/
+        function toggleStreamLayer() {
+          streamLayer ? removeStreamLayer() : addStreamLayer();
+        }
+
+        function addStreamLayer() {
+          //url to stream service
+          var svcUrl = dojo.byId("streamServiceUrl").value;
+
+          //construct Stream Layer
+          streamLayer = new StreamLayer(svcUrl, {
+            definitionExpression: expressionFilter,
+            geometryDefinition: spatialFilter,
+            purgeOptions: { displayCount: 10000 }
+          });
+
+          //When layer loads, register listeners for layer events and add layer to map
+          streamLayer.on("load", function() {
+            //Connect and Disconnect events
+            streamLayer.on("connect", processConnect);
+            streamLayer.on("disconnect", processDisconnect);
+            streamLayer.on("message", processMessage);
+            streamLayer.on("connection-error", function() {
+              createToaster(
+                "Alert",
+                "Error connecting to the Stream Service",
+                "red"
+              );
+              removeStreamLayer();
+            });
+
+            // Add popup template
+            var fieldInfos = array.map(streamLayer.fields, function(field) {
+              return {
+                fieldName: field.name,
+                label: field.alias,
+                visible: true
+              };
+            });
+
+            var template = new PopupTemplate({
+              fieldInfos: fieldInfos
+            });
+            streamLayer.setInfoTemplate(template);
+
+            //Add layer to map
+            map.addLayer(streamLayer);
+          });
+        }
+
+        function removeStreamLayer() {
+          if (streamLayer) {
+            map.removeLayer(streamLayer);
+            streamLayer = null;
+          }
+        }
+
+        /*********************************************************
+         *
+         * Stream layer event handlers
+         *
+         *********************************************************/
+        function processConnect() {
+          dojo.byId("toggleStreamLayer").innerText = "Remove Stream Layer";
+          domAttr.remove(dojo.byId("clearPreviousObservations"), "disabled");
+        }
+
+        function processDisconnect() {
+          dojo.byId("toggleStreamLayer").innerText = "Add Stream Layer";
+          domAttr.set(
+            dojo.byId("clearPreviousObservations"),
+            "disabled",
+            "true"
+          );
+        }
+
+        function processMessage(msg) {
+          if (msg.error) {
+            createToaster("Alert", msg.error[0], "red");
+          } else if (msg.filter) {
+            if (
+              msg.filter.hasOwnProperty("where") ||
+              msg.filter.hasOwnProperty("geometry")
+            ) {
+              createToaster(
+                "Success",
+                "Successfully updated the filter. \nAttribute Filter: " +
+                  (msg.filter.where || "") +
+                  "\nSpatial Filter: " +
+                  (msg.filter.geometry
+                    ? typeof msg.filter.geometry === "object"
+                      ? JSON.stringify(msg.filter.geometry)
+                      : msg.filter.geometry
+                    : ""),
+                "green"
+              );
+            } else {
+              createToaster(
+                "Success",
+                "Successfully updated the filter. \n\nAttribute Filter: \n Spatial Filter: ",
+                "green"
+              );
+            }
+          }
+        }
+
+        /************************************************
+         *
+         * Functions to set and clear spatial/expression filter
+         *
+         ************************************************/
+        function applyWhereClause() {
+          expressionFilter = dojo.byId("expressionFilter").value;
+          if (streamLayer)
+            streamLayer.setDefinitionExpression(expressionFilter || null);
+        }
+
+        function applySpatialFilter() {
+          drawTools.activate(Draw.EXTENT);
+        }
+
+        function clearSpatialFilter() {
+          spatialFilter = null;
+          map.graphics.clear();
+          if (streamLayer) streamLayer.setGeometryDefinition(null);
+          domAttr.set(dojo.byId("clearSpatialFilter"), "disabled", "true");
+        }
+
+        function drawSpatialFilter(bbox) {
+          //update map graphic to show current spatial filter
+          if (bbox) {
+            map.graphics.clear();
+            map.graphics.add(
+              new Graphic(
+                bbox,
+                new SimpleFillSymbol(
+                  SimpleFillSymbol.STYLE_NULL,
+                  new SimpleLineSymbol(
+                    SimpleLineSymbol.STYLE_SOLID,
+                    new Color([5, 112, 176]),
+                    2
+                  ),
+                  new Color([5, 112, 176, 0])
+                )
+              )
+            );
+          }
+        }
+
+        init();
+      });
+    </script>
+  </head>
+
+  <body class="flat">
+    <div id="map">
+      <div class="basemapGallery-container">
+        <div
+          data-dojo-type="dijit/TitlePane"
+          data-dojo-props="title:'Switch Basemap', open:false"
+        >
+          <div
+            data-dojo-type="dijit/layout/ContentPane"
+            style="width:380px; height:280px; overflow:auto;"
+          >
+            <div id="basemapGallery"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="collapser">
+      <i id="collapserIcon" class="flat-chevron-right"></i>
+      <i id="expanderIcon" class="flat-chevron-left"></i>
+    </div>
+    <div id="controls">
+      <section>
+        <div class="config-header">
+          <h2>Layers</h2>
+          <div class="header-actions-group">
+            <i class="fa"></i>
+          </div>
+        </div>
+        <div class="config-content">
+          <div class="input-group input-group-full">
+            <calcite-input
+              type="text"
+              id="streamServiceUrl"
+              placeholder="Stream layer url"
+              value="https://geoeventsample1.esri.com/server/rest/services/FAAStream/StreamServer"
+            ></calcite-input>
+          </div>
+          <div class="input-group input-group-full">
+            <calcite-button id="toggleStreamLayer" width="full"
+              >Add Stream Layer</calcite-button
+            >
+          </div>
+          <div class="input-group input-group-full">
+            <calcite-button
+              id="clearPreviousObservations"
+              width="full"
+              disabled="true"
+              >Clear Previous Observations</calcite-button
+            >
+          </div>
+          <div class="input-group input-group-full">
+            <calcite-input
+              id="expressionFilter"
+              type="text"
+              placeholder="Attribute Filter (where clause)"
+            >
+              <calcite-button id="applyWhereClause" slot="action"
+                >Apply</calcite-button
+              >
+            </calcite-input>
+          </div>
+          <div class="input-group">
+            <div class="input-row">
+              <calcite-button id="applySpatialFilter" class="prev-element"
+                >Apply Spatial Filter</calcite-button
+              >
+              <calcite-button id="clearSpatialFilter" disabled="true"
+                >Clear Spatial Filter</calcite-button
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+      <calcite-button
+        id="switchViewer"
+        style="position: absolute; bottom: 0; right: 0; z-index: 1; margin: 5px;"
+        >Switch to New Viewer</calcite-button
+      >
+    </div>
+  </body>
+</html>
