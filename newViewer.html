@@ -5,7 +5,7 @@
     <title>Stream Service Viewer</title>
     <link
       rel="stylesheet"
-      href="https://js.arcgis.com/3.42/esri/css/esri.css"
+      href="https://js.arcgis.com/4.14/esri/css/main.css"
     />
     <link
       rel="stylesheet"
@@ -13,7 +13,7 @@
       href="https://js.arcgis.com/calcite-components/1.0.0-beta.97/calcite.css"
     />
     <link rel="stylesheet" href="./streamServiceViewerStyles.css" />
-    <script src="https://js.arcgis.com/3.42/"></script>
+    <script src="https://js.arcgis.com/4.14/"></script>
     <script src="https://use.fontawesome.com/9482a0b1d1.js"></script>
     <script
       type="module"
@@ -22,62 +22,91 @@
     <script>
       require([
         "dojo/parser",
-        "esri/map",
-        "esri/toolbars/draw",
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/widgets/BasemapGallery",
         "esri/layers/StreamLayer",
-        "esri/InfoTemplate",
-        "esri/graphic",
-        "esri/symbols/SimpleFillSymbol",
-        "esri/symbols/SimpleLineSymbol",
-        "esri/dijit/PopupTemplate",
-        "esri/dijit/BasemapGallery",
-        "dojo/_base/array",
-        "dojo/_base/Color",
+        "esri/geometry/Polygon",
+        "esri/Graphic",
+        "esri/PopupTemplate",
+        "esri/popup/FieldInfo",
+        "esri/widgets/Sketch/SketchViewModel",
+        "esri/layers/GraphicsLayer",
         "dojo/on",
-        "dojo/dom-class",
+        "dojo/dom",
         "dojo/dom-attr",
-        "dijit/TitlePane",
-        "dijit/layout/ContentPane",
         "dojo/domReady!"
       ], function(
         parser,
         Map,
-        Draw,
-        StreamLayer,
-        InfoTemplate,
-        Graphic,
-        SimpleFillSymbol,
-        SimpleLineSymbol,
-        PopupTemplate,
+        MapView,
         BasemapGallery,
-        array,
-        Color,
+        StreamLayer,
+        Polygon,
+        Graphic,
+        PopupTemplate,
+        FieldInfo,
+        SketchViewModel,
+        GraphicsLayer,
         on,
-        domClass,
+        dom,
         domAttr
       ) {
-        var map, drawTools, streamLayer, spatialFilter, expressionFilter;
+        var map,
+          mapView,
+          sketchViewModel,
+          sketchViewModelLayer,
+          streamLayer,
+          spatialFilter,
+          expressionFilter;
 
         parser.parse();
 
         function init() {
-          map = new Map("map", {
+          map = new Map({
             basemap: "gray-vector"
+          });
+
+          mapView = new MapView({
+            map: map,
+            container: "map"
           });
 
           new BasemapGallery(
             {
-              showArcGISBasemaps: true,
-              map: map
+              view: mapView
             },
             "basemapGallery"
-          ).startup();
+          );
 
-          drawTools = new Draw(map);
+          sketchViewModelLayer = new GraphicsLayer();
+          map.add(sketchViewModelLayer);
+
+          sketchViewModel = new SketchViewModel({
+            layer: sketchViewModelLayer,
+            view: mapView,
+            defaultUpdateOptions: {
+              enableRotation: false,
+              toggleToolOnClick: false
+            }
+          });
+
+          sketchViewModel.on("create", ({ graphic, state }) => {
+            switch (state) {
+              case "complete":
+                spatialFilter = graphic.geometry.extent;
+                drawSpatialFilter(spatialFilter);
+                if (streamLayer) streamLayer.geometryDefinition = spatialFilter;
+                domAttr.remove(dom.byId("clearSpatialFilter"), "disabled");
+                break;
+              default:
+                break;
+            }
+          });
 
           //connect click events to UI buttons
           on(
-            dojo.byId("controls"),
+            dom.byId("controls"),
             on.selector(".config-header", "click"),
             function(e) {
               if (e.target.type !== "checkbox") {
@@ -92,19 +121,12 @@
             "click",
             togglePanel
           );
-          on(dojo.byId("toggleStreamLayer"), "click", toggleStreamLayer);
-          on(dojo.byId("clearPreviousObservations"), "click", function() {
-            if (streamLayer) streamLayer.clear();
-          });
-          on(dojo.byId("applyWhereClause"), "click", applyWhereClause);
-          on(dojo.byId("applySpatialFilter"), "click", applySpatialFilter);
-          on(dojo.byId("clearSpatialFilter"), "click", clearSpatialFilter);
-          on(drawTools, "draw-end", function(evt) {
-            drawTools.deactivate();
-            spatialFilter = evt.geometry;
-            drawSpatialFilter(spatialFilter);
-            if (streamLayer) streamLayer.setGeometryDefinition(spatialFilter);
-            domAttr.remove(dojo.byId("clearSpatialFilter"), "disabled");
+          on(dom.byId("toggleStreamLayer"), "click", toggleStreamLayer);
+          on(dom.byId("applyWhereClause"), "click", applyWhereClause);
+          on(dom.byId("applySpatialFilter"), "click", applySpatialFilter);
+          on(dom.byId("clearSpatialFilter"), "click", clearSpatialFilter);
+          on(dom.byId("switchViewer"), "click", function() {
+            window.location.href = "./classicViewer.html";
           });
         }
 
@@ -150,22 +172,33 @@
 
         function addStreamLayer() {
           //url to stream service
-          var svcUrl = dojo.byId("streamServiceUrl").value;
+          var svcUrl = dom.byId("streamServiceUrl").value;
 
           //construct Stream Layer
-          streamLayer = new StreamLayer(svcUrl, {
+          streamLayer = new StreamLayer({
+            url: svcUrl,
             definitionExpression: expressionFilter,
             geometryDefinition: spatialFilter,
             purgeOptions: { displayCount: 10000 }
           });
 
+          streamLayer.createPopupTemplate();
+
+          //Add layer to map
+          map.add(streamLayer);
+
           //When layer loads, register listeners for layer events and add layer to map
-          streamLayer.on("load", function() {
-            //Connect and Disconnect events
-            streamLayer.on("connect", processConnect);
-            streamLayer.on("disconnect", processDisconnect);
-            streamLayer.on("message", processMessage);
-            streamLayer.on("connection-error", function() {
+          mapView.whenLayerView(streamLayer).then(layerView => {
+            processConnect();
+
+            layerView.watch("connectionStatus", value => {
+              if (value === "connected") {
+                processConnect();
+              } else {
+                processDisconnect();
+              }
+            });
+            layerView.watch("connectionError", error => {
               createToaster(
                 "Alert",
                 "Error connecting to the Stream Service",
@@ -174,29 +207,16 @@
               removeStreamLayer();
             });
 
-            // Add popup template
-            var fieldInfos = array.map(streamLayer.fields, function(field) {
-              return {
-                fieldName: field.name,
-                label: field.alias,
-                visible: true
-              };
-            });
-
-            var template = new PopupTemplate({
-              fieldInfos: fieldInfos
-            });
-            streamLayer.setInfoTemplate(template);
-
-            //Add layer to map
-            map.addLayer(streamLayer);
+            streamLayer.popupTemplate = streamLayer.createPopupTemplate();
           });
         }
 
         function removeStreamLayer() {
           if (streamLayer) {
-            map.removeLayer(streamLayer);
+            map.remove(streamLayer);
+            streamLayer.destroy();
             streamLayer = null;
+            processDisconnect();
           }
         }
 
@@ -206,17 +226,20 @@
          *
          *********************************************************/
         function processConnect() {
-          dojo.byId("toggleStreamLayer").innerText = "Remove Stream Layer";
-          domAttr.remove(dojo.byId("clearPreviousObservations"), "disabled");
+          dom.byId("toggleStreamLayer").innerText = "Remove Stream Layer";
+          // disable buttons as we can't change stuff on the fly
+          domAttr.set(dom.byId("applySpatialFilter"), "disabled", "true");
+          domAttr.set(dom.byId("clearSpatialFilter"), "disabled", "true");
+          domAttr.set(dom.byId("applyWhereClause"), "disabled", "true");
         }
 
         function processDisconnect() {
-          dojo.byId("toggleStreamLayer").innerText = "Add Stream Layer";
-          domAttr.set(
-            dojo.byId("clearPreviousObservations"),
-            "disabled",
-            "true"
-          );
+          dom.byId("toggleStreamLayer").innerText = "Add Stream Layer";
+          // enable necessary buttons
+          spatialFilter
+            ? domAttr.remove(dom.byId("clearSpatialFilter"), "disabled")
+            : domAttr.remove(dom.byId("applySpatialFilter"), "disabled");
+          domAttr.remove(dom.byId("applyWhereClause"), "disabled");
         }
 
         function processMessage(msg) {
@@ -255,39 +278,38 @@
          *
          ************************************************/
         function applyWhereClause() {
-          expressionFilter = dojo.byId("expressionFilter").value;
+          expressionFilter = dom.byId("expressionFilter").value;
           if (streamLayer)
-            streamLayer.setDefinitionExpression(expressionFilter || null);
+            streamLayer.definitionExpression = expressionFilter || null;
         }
 
         function applySpatialFilter() {
-          drawTools.activate(Draw.EXTENT);
+          sketchViewModel.create("rectangle");
         }
 
         function clearSpatialFilter() {
           spatialFilter = null;
-          map.graphics.clear();
-          if (streamLayer) streamLayer.setGeometryDefinition(null);
-          domAttr.set(dojo.byId("clearSpatialFilter"), "disabled", "true");
+          sketchViewModelLayer.removeAll();
+          if (streamLayer) streamLayer.geometryDefinition = null;
+          domAttr.set(dom.byId("clearSpatialFilter"), "disabled", "true");
         }
 
-        function drawSpatialFilter(bbox) {
+        function drawSpatialFilter(geometry) {
           //update map graphic to show current spatial filter
-          if (bbox) {
-            map.graphics.clear();
-            map.graphics.add(
-              new Graphic(
-                bbox,
-                new SimpleFillSymbol(
-                  SimpleFillSymbol.STYLE_NULL,
-                  new SimpleLineSymbol(
-                    SimpleLineSymbol.STYLE_SOLID,
-                    new Color([5, 112, 176]),
-                    2
-                  ),
-                  new Color([5, 112, 176, 0])
-                )
-              )
+          if (geometry) {
+            sketchViewModelLayer.removeAll();
+            sketchViewModelLayer.add(
+              new Graphic({
+                geometry: geometry,
+                symbol: {
+                  type: "simple-fill",
+                  style: "none",
+                  outline: {
+                    color: [5, 112, 176],
+                    width: 2
+                  }
+                }
+              })
             );
           }
         }
@@ -340,14 +362,6 @@
             >
           </div>
           <div class="input-group input-group-full">
-            <calcite-button
-              id="clearPreviousObservations"
-              width="full"
-              disabled="true"
-              >Clear Previous Observations</calcite-button
-            >
-          </div>
-          <div class="input-group input-group-full">
             <calcite-input
               id="expressionFilter"
               type="text"
@@ -370,6 +384,11 @@
           </div>
         </div>
       </section>
+      <calcite-button
+        id="switchViewer"
+        style="position: absolute; bottom: 0; right: 0; z-index: 1; margin: 5px;"
+        >Switch to Classic Viewer</calcite-button
+      >
     </div>
   </body>
 </html>
