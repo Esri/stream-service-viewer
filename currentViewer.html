@@ -186,13 +186,13 @@
 
           //When layer loads, register listeners for layer events and add layer to map
           mapView.whenLayerView(streamLayer).then((layerView) => {
-            processConnect();
+            onLayerAdded();
 
             layerView.watch("connectionStatus", (value) => {
               if (value === "connected") {
-                processConnect();
+                onLayerAdded();
               } else {
-                processDisconnect();
+                onLayerRemoved();
               }
             });
             layerView.watch("connectionError", (error) => {
@@ -213,7 +213,7 @@
             map.remove(streamLayer);
             streamLayer.destroy();
             streamLayer = null;
-            processDisconnect();
+            onLayerRemoved();
           }
         }
 
@@ -222,9 +222,15 @@
          * Stream layer event handlers
          *
          *********************************************************/
-        function processConnect() {
+        function onLayerAdded() {
           document.getElementById("toggleStreamLayer").innerText =
             "Remove Stream Layer";
+          document
+            .getElementById("subscribeUnsubscribe")
+            .removeAttribute("disabled");
+          document
+            .getElementById("clearPreviousObservations")
+            .removeAttribute("disabled");
           // disable buttons as we can't change stuff on the fly
           document
             .getElementById("applySpatialFilter")
@@ -237,9 +243,15 @@
             .setAttribute("disabled", "true");
         }
 
-        function processDisconnect() {
+        function onLayerRemoved() {
           document.getElementById("toggleStreamLayer").innerText =
             "Add Stream Layer";
+          document
+            .getElementById("subscribeUnsubscribe")
+            .setAttribute("disabled", "true");
+          document
+            .getElementById("clearPreviousObservations")
+            .setAttribute("disabled", "true");
           // enable necessary buttons
           if (spatialFilter)
             document
@@ -253,7 +265,7 @@
             .removeAttribute("disabled");
         }
 
-        function processMessage(msg) {
+        function onMessage(msg) {
           if (msg.error) {
             createToaster("Alert", msg.error[0], "red");
           } else if (msg.filter) {
@@ -361,6 +373,15 @@
             >
           </div>
           <div class="input-group input-group-full">
+            <calcite-tooltip
+              label="This feature is currently unavailable with the current version of the JSAPI"
+              reference-element="subscribeUnsubscribe"
+            >
+              <span
+                >This feature is currently unavailable with the current version
+                of the JSAPI</span
+              >
+            </calcite-tooltip>
             <calcite-button
               id="subscribeUnsubscribe"
               width="full"
@@ -369,6 +390,15 @@
             >
           </div>
           <div class="input-group input-group-full">
+            <calcite-tooltip
+              label="This feature is currently unavailable with the current version of the JSAPI"
+              reference-element="clearPreviousObservations"
+            >
+              <span
+                >This feature is currently unavailable with the current version
+                of the JSAPI</span
+              >
+            </calcite-tooltip>
             <calcite-button
               id="clearPreviousObservations"
               width="full"
