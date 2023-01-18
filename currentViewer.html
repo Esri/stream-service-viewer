@@ -87,7 +87,9 @@
                 spatialFilter = graphic.geometry.extent;
                 drawSpatialFilter(spatialFilter);
                 if (streamLayer) streamLayer.geometryDefinition = spatialFilter;
-                document.getElementById("clearSpatialFilter").removeAttribute("disabled");
+                document
+                  .getElementById("clearSpatialFilter")
+                  .removeAttribute("disabled");
                 break;
               default:
                 break;
@@ -96,22 +98,34 @@
 
           //connect click events to UI buttons
           var headerElements = document.getElementsByClassName("config-header");
-            for(var i = 0; i < headerElements.length; i++) {
-              headerElements[i].addEventListener("click", function(e) {
-                if (e.target.type !== "checkbox") {
-                  var sectionWrapper = e.target.closest("section");
-                  sectionWrapper.classList.toggle("section-hidden");
-                }
-              });
-            }
-          document.getElementsByClassName("collapser")[0].addEventListener("click", togglePanel);
-          document.getElementById("toggleStreamLayer").addEventListener("click", toggleStreamLayer);
-          document.getElementById("applyWhereClause").addEventListener("click", applyWhereClause);
-          document.getElementById("applySpatialFilter").addEventListener("click", applySpatialFilter);
-          document.getElementById("clearSpatialFilter").addEventListener("click", clearSpatialFilter);
-          document.getElementById("switchViewer").addEventListener("click", function() {
-            window.location.href = "./classicViewer.html";
-          });
+          for (var i = 0; i < headerElements.length; i++) {
+            headerElements[i].addEventListener("click", function(e) {
+              if (e.target.type !== "checkbox") {
+                var sectionWrapper = e.target.closest("section");
+                sectionWrapper.classList.toggle("section-hidden");
+              }
+            });
+          }
+          document
+            .getElementsByClassName("collapser")[0]
+            .addEventListener("click", togglePanel);
+          document
+            .getElementById("toggleStreamLayer")
+            .addEventListener("click", toggleStreamLayer);
+          document
+            .getElementById("applyWhereClause")
+            .addEventListener("click", applyWhereClause);
+          document
+            .getElementById("applySpatialFilter")
+            .addEventListener("click", applySpatialFilter);
+          document
+            .getElementById("clearSpatialFilter")
+            .addEventListener("click", clearSpatialFilter);
+          document
+            .getElementById("switchViewer")
+            .addEventListener("click", function() {
+              window.location.href = "./classicViewer.html";
+            });
         }
 
         /*************************************************
@@ -120,7 +134,9 @@
          *
          *************************************************/
         function togglePanel() {
-          document.getElementsByTagName("body")[0].classList.toggle("panel-collapsed");
+          document
+            .getElementsByTagName("body")[0]
+            .classList.toggle("panel-collapsed");
         }
 
         function createToaster(title, message, color) {
@@ -169,17 +185,17 @@
           map.add(streamLayer);
 
           //When layer loads, register listeners for layer events and add layer to map
-          mapView.whenLayerView(streamLayer).then(layerView => {
+          mapView.whenLayerView(streamLayer).then((layerView) => {
             processConnect();
 
-            layerView.watch("connectionStatus", value => {
+            layerView.watch("connectionStatus", (value) => {
               if (value === "connected") {
                 processConnect();
               } else {
                 processDisconnect();
               }
             });
-            layerView.watch("connectionError", error => {
+            layerView.watch("connectionError", (error) => {
               createToaster(
                 "Alert",
                 "Error connecting to the Stream Service",
@@ -207,20 +223,34 @@
          *
          *********************************************************/
         function processConnect() {
-          document.getElementById("toggleStreamLayer").innerText = "Remove Stream Layer";
+          document.getElementById("toggleStreamLayer").innerText =
+            "Remove Stream Layer";
           // disable buttons as we can't change stuff on the fly
-          document.getElementById("applySpatialFilter").setAttribute("disabled", "true");
-          document.getElementById("clearSpatialFilter").setAttribute("disabled", "true");
-          document.getElementById("applyWhereClause").setAttribute("disabled", "true");
+          document
+            .getElementById("applySpatialFilter")
+            .setAttribute("disabled", "true");
+          document
+            .getElementById("clearSpatialFilter")
+            .setAttribute("disabled", "true");
+          document
+            .getElementById("applyWhereClause")
+            .setAttribute("disabled", "true");
         }
 
         function processDisconnect() {
-          document.getElementById("toggleStreamLayer").innerText = "Add Stream Layer";
+          document.getElementById("toggleStreamLayer").innerText =
+            "Add Stream Layer";
           // enable necessary buttons
           if (spatialFilter)
-            document.getElementById("clearSpatialFilter").removeAttribute("disabled")
-          document.getElementById("applySpatialFilter").removeAttribute("disabled");
-          document.getElementById("applyWhereClause").removeAttribute("disabled");
+            document
+              .getElementById("clearSpatialFilter")
+              .removeAttribute("disabled");
+          document
+            .getElementById("applySpatialFilter")
+            .removeAttribute("disabled");
+          document
+            .getElementById("applyWhereClause")
+            .removeAttribute("disabled");
         }
 
         function processMessage(msg) {
@@ -272,7 +302,9 @@
           spatialFilter = null;
           sketchViewModelLayer.removeAll();
           if (streamLayer) streamLayer.geometryDefinition = null;
-          document.getElementById("clearSpatialFilter").setAttribute("disabled", "true");
+          document
+            .getElementById("clearSpatialFilter")
+            .setAttribute("disabled", "true");
         }
 
         function drawSpatialFilter(geometry) {
@@ -329,17 +361,17 @@
             >
           </div>
           <div class="input-group input-group-full">
-            <calcite-button 
+            <calcite-button
               id="subscribeUnsubscribe"
-              width="full" 
+              width="full"
               disabled="true"
               >Unsubscribe</calcite-button
             >
           </div>
           <div class="input-group input-group-full">
-            <calcite-button 
+            <calcite-button
               id="clearPreviousObservations"
-              width="full" 
+              width="full"
               disabled="true"
               >Clear Previous Observations</calcite-button
             >

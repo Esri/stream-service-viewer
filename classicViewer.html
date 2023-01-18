@@ -152,7 +152,11 @@
          *
          *************************************************/
         function toggleSubscription() {
-          if (streamLayer && streamLayer.socket && streamLayer.socket.readyState === 1) {
+          if (
+            streamLayer &&
+            streamLayer.socket &&
+            streamLayer.socket.readyState === 1
+          ) {
             streamLayer.disconnect();
           } else {
             streamLayer.connect();
@@ -237,11 +241,7 @@
             "true"
           );
           dojo.byId("subscribeUnsubscribe").innerText = "Unsubscribe";
-          domAttr.set(
-            dojo.byId("subscribeUnsubscribe"),
-            "disabled",
-            "true"
-          );
+          domAttr.set(dojo.byId("subscribeUnsubscribe"), "disabled", "true");
         }
 
         function onLayerConnected() {
@@ -373,9 +373,9 @@
             >
           </div>
           <div class="input-group input-group-full">
-            <calcite-button 
+            <calcite-button
               id="subscribeUnsubscribe"
-              width="full" 
+              width="full"
               disabled="true"
               >Unsubscribe</calcite-button
             >
