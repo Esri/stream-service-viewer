@@ -81,10 +81,10 @@
             }
           });
 
-          sketchViewModel.on("create", ({ graphic, state }) => {
-            switch (state) {
+          sketchViewModel.on("create", function(obj) {
+            switch (obj.state) {
               case "complete":
-                spatialFilter = graphic.geometry.extent;
+                spatialFilter = obj.graphic.geometry.extent;
                 drawSpatialFilter(spatialFilter);
                 if (streamLayer) streamLayer.geometryDefinition = spatialFilter;
                 document
@@ -185,17 +185,17 @@
           map.add(streamLayer);
 
           //When layer loads, register listeners for layer events and add layer to map
-          mapView.whenLayerView(streamLayer).then((layerView) => {
+          mapView.whenLayerView(streamLayer).then(function (layerView) {
             onLayerAdded();
 
-            layerView.watch("connectionStatus", (value) => {
+            layerView.watch("connectionStatus", function (value) {
               if (value === "connected") {
                 onLayerAdded();
               } else {
                 onLayerRemoved();
               }
             });
-            layerView.watch("connectionError", (error) => {
+            layerView.watch("connectionError", function (error) {
               createToaster(
                 "Alert",
                 "Error connecting to the Stream Service",
