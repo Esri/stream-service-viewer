@@ -5,7 +5,7 @@
     <title>Stream Service Viewer</title>
     <link
       rel="stylesheet"
-      href="https://js.arcgis.com/4.14/esri/css/main.css"
+      href="https://js.arcgis.com/4.25/esri/themes/light/main.css"
     />
     <link
       rel="stylesheet"
@@ -13,7 +13,7 @@
       href="https://js.arcgis.com/calcite-components/1.0.0-beta.97/calcite.css"
     />
     <link rel="stylesheet" href="./streamServiceViewerStyles.css" />
-    <script src="https://js.arcgis.com/4.14/"></script>
+    <script src="https://js.arcgis.com/4.25/"></script>
     <script src="https://use.fontawesome.com/9482a0b1d1.js"></script>
     <script
       type="module"
@@ -21,7 +21,6 @@
     ></script>
     <script>
       require([
-        "dojo/parser",
         "esri/Map",
         "esri/views/MapView",
         "esri/widgets/BasemapGallery",
@@ -32,12 +31,8 @@
         "esri/popup/FieldInfo",
         "esri/widgets/Sketch/SketchViewModel",
         "esri/layers/GraphicsLayer",
-        "dojo/on",
-        "dojo/dom",
-        "dojo/dom-attr",
-        "dojo/domReady!"
+        "esri/widgets/Expand"
       ], function(
-        parser,
         Map,
         MapView,
         BasemapGallery,
@@ -48,9 +43,7 @@
         FieldInfo,
         SketchViewModel,
         GraphicsLayer,
-        on,
-        dom,
-        domAttr
+        Expand
       ) {
         var map,
           mapView,
@@ -59,8 +52,6 @@
           streamLayer,
           spatialFilter,
           expressionFilter;
-
-        parser.parse();
 
         function init() {
           map = new Map({
@@ -72,12 +63,11 @@
             container: "map"
           });
 
-          new BasemapGallery(
-            {
-              view: mapView
-            },
-            "basemapGallery"
-          );
+          var bgExpand = new Expand({
+            view: mapView,
+            content: new BasemapGallery({ view: mapView })
+          });
+          mapView.ui.add(bgExpand, "top-left");
 
           sketchViewModelLayer = new GraphicsLayer();
           map.add(sketchViewModelLayer);
@@ -91,13 +81,15 @@
             }
           });
 
-          sketchViewModel.on("create", ({ graphic, state }) => {
-            switch (state) {
+          sketchViewModel.on("create", function(obj) {
+            switch (obj.state) {
               case "complete":
-                spatialFilter = graphic.geometry.extent;
+                spatialFilter = obj.graphic.geometry.extent;
                 drawSpatialFilter(spatialFilter);
                 if (streamLayer) streamLayer.geometryDefinition = spatialFilter;
-                domAttr.remove(dom.byId("clearSpatialFilter"), "disabled");
+                document
+                  .getElementById("clearSpatialFilter")
+                  .removeAttribute("disabled");
                 break;
               default:
                 break;
@@ -105,29 +97,35 @@
           });
 
           //connect click events to UI buttons
-          on(
-            dom.byId("controls"),
-            on.selector(".config-header", "click"),
-            function(e) {
+          var headerElements = document.getElementsByClassName("config-header");
+          for (var i = 0; i < headerElements.length; i++) {
+            headerElements[i].addEventListener("click", function(e) {
               if (e.target.type !== "checkbox") {
-                var sectionWrapper = e.selectorTarget.parentNode;
-
-                domClass.toggle(sectionWrapper, "section-hidden");
+                var sectionWrapper = e.target.closest("section");
+                sectionWrapper.classList.toggle("section-hidden");
               }
-            }
-          );
-          on(
-            document.getElementsByClassName("collapser")[0],
-            "click",
-            togglePanel
-          );
-          on(dom.byId("toggleStreamLayer"), "click", toggleStreamLayer);
-          on(dom.byId("applyWhereClause"), "click", applyWhereClause);
-          on(dom.byId("applySpatialFilter"), "click", applySpatialFilter);
-          on(dom.byId("clearSpatialFilter"), "click", clearSpatialFilter);
-          on(dom.byId("switchViewer"), "click", function() {
-            window.location.href = "./classicViewer.html";
-          });
+            });
+          }
+          document
+            .getElementsByClassName("collapser")[0]
+            .addEventListener("click", togglePanel);
+          document
+            .getElementById("toggleStreamLayer")
+            .addEventListener("click", toggleStreamLayer);
+          document
+            .getElementById("applyWhereClause")
+            .addEventListener("click", applyWhereClause);
+          document
+            .getElementById("applySpatialFilter")
+            .addEventListener("click", applySpatialFilter);
+          document
+            .getElementById("clearSpatialFilter")
+            .addEventListener("click", clearSpatialFilter);
+          document
+            .getElementById("switchViewer")
+            .addEventListener("click", function() {
+              window.location.href = "./classicViewer.html";
+            });
         }
 
         /*************************************************
@@ -136,10 +134,9 @@
          *
          *************************************************/
         function togglePanel() {
-          domClass.toggle(
-            document.getElementsByTagName("body")[0],
-            "panel-collapsed"
-          );
+          document
+            .getElementsByTagName("body")[0]
+            .classList.toggle("panel-collapsed");
         }
 
         function createToaster(title, message, color) {
@@ -172,7 +169,7 @@
 
         function addStreamLayer() {
           //url to stream service
-          var svcUrl = dom.byId("streamServiceUrl").value;
+          var svcUrl = document.getElementById("streamServiceUrl").value;
 
           //construct Stream Layer
           streamLayer = new StreamLayer({
@@ -188,17 +185,17 @@
           map.add(streamLayer);
 
           //When layer loads, register listeners for layer events and add layer to map
-          mapView.whenLayerView(streamLayer).then(layerView => {
-            processConnect();
+          mapView.whenLayerView(streamLayer).then(function (layerView) {
+            onLayerAdded();
 
-            layerView.watch("connectionStatus", value => {
+            layerView.watch("connectionStatus", function (value) {
               if (value === "connected") {
-                processConnect();
+                onLayerAdded();
               } else {
-                processDisconnect();
+                onLayerRemoved();
               }
             });
-            layerView.watch("connectionError", error => {
+            layerView.watch("connectionError", function (error) {
               createToaster(
                 "Alert",
                 "Error connecting to the Stream Service",
@@ -216,7 +213,7 @@
             map.remove(streamLayer);
             streamLayer.destroy();
             streamLayer = null;
-            processDisconnect();
+            onLayerRemoved();
           }
         }
 
@@ -225,24 +222,50 @@
          * Stream layer event handlers
          *
          *********************************************************/
-        function processConnect() {
-          dom.byId("toggleStreamLayer").innerText = "Remove Stream Layer";
+        function onLayerAdded() {
+          document.getElementById("toggleStreamLayer").innerText =
+            "Remove Stream Layer";
+          document
+            .getElementById("subscribeUnsubscribe")
+            .removeAttribute("disabled");
+          document
+            .getElementById("clearPreviousObservations")
+            .removeAttribute("disabled");
           // disable buttons as we can't change stuff on the fly
-          domAttr.set(dom.byId("applySpatialFilter"), "disabled", "true");
-          domAttr.set(dom.byId("clearSpatialFilter"), "disabled", "true");
-          domAttr.set(dom.byId("applyWhereClause"), "disabled", "true");
+          document
+            .getElementById("applySpatialFilter")
+            .setAttribute("disabled", "true");
+          document
+            .getElementById("clearSpatialFilter")
+            .setAttribute("disabled", "true");
+          document
+            .getElementById("applyWhereClause")
+            .setAttribute("disabled", "true");
         }
 
-        function processDisconnect() {
-          dom.byId("toggleStreamLayer").innerText = "Add Stream Layer";
+        function onLayerRemoved() {
+          document.getElementById("toggleStreamLayer").innerText =
+            "Add Stream Layer";
+          document
+            .getElementById("subscribeUnsubscribe")
+            .setAttribute("disabled", "true");
+          document
+            .getElementById("clearPreviousObservations")
+            .setAttribute("disabled", "true");
           // enable necessary buttons
-          spatialFilter
-            ? domAttr.remove(dom.byId("clearSpatialFilter"), "disabled")
-            : domAttr.remove(dom.byId("applySpatialFilter"), "disabled");
-          domAttr.remove(dom.byId("applyWhereClause"), "disabled");
+          if (spatialFilter)
+            document
+              .getElementById("clearSpatialFilter")
+              .removeAttribute("disabled");
+          document
+            .getElementById("applySpatialFilter")
+            .removeAttribute("disabled");
+          document
+            .getElementById("applyWhereClause")
+            .removeAttribute("disabled");
         }
 
-        function processMessage(msg) {
+        function onMessage(msg) {
           if (msg.error) {
             createToaster("Alert", msg.error[0], "red");
           } else if (msg.filter) {
@@ -278,7 +301,7 @@
          *
          ************************************************/
         function applyWhereClause() {
-          expressionFilter = dom.byId("expressionFilter").value;
+          expressionFilter = document.getElementById("expressionFilter").value;
           if (streamLayer)
             streamLayer.definitionExpression = expressionFilter || null;
         }
@@ -291,7 +314,9 @@
           spatialFilter = null;
           sketchViewModelLayer.removeAll();
           if (streamLayer) streamLayer.geometryDefinition = null;
-          domAttr.set(dom.byId("clearSpatialFilter"), "disabled", "true");
+          document
+            .getElementById("clearSpatialFilter")
+            .setAttribute("disabled", "true");
         }
 
         function drawSpatialFilter(geometry) {
@@ -320,21 +345,7 @@
   </head>
 
   <body class="flat">
-    <div id="map">
-      <div class="basemapGallery-container">
-        <div
-          data-dojo-type="dijit/TitlePane"
-          data-dojo-props="title:'Switch Basemap', open:false"
-        >
-          <div
-            data-dojo-type="dijit/layout/ContentPane"
-            style="width:380px; height:280px; overflow:auto;"
-          >
-            <div id="basemapGallery"></div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div id="map"></div>
     <div class="collapser">
       <i id="collapserIcon" class="flat-chevron-right"></i>
       <i id="expanderIcon" class="flat-chevron-left"></i>
@@ -359,6 +370,40 @@
           <div class="input-group input-group-full">
             <calcite-button id="toggleStreamLayer" width="full"
               >Add Stream Layer</calcite-button
+            >
+          </div>
+          <div class="input-group input-group-full">
+            <calcite-tooltip
+              label="This feature is currently unavailable with the current version of the JSAPI"
+              reference-element="subscribeUnsubscribe"
+            >
+              <span
+                >This feature is currently unavailable with the current version
+                of the JSAPI</span
+              >
+            </calcite-tooltip>
+            <calcite-button
+              id="subscribeUnsubscribe"
+              width="full"
+              disabled="true"
+              >Unsubscribe</calcite-button
+            >
+          </div>
+          <div class="input-group input-group-full">
+            <calcite-tooltip
+              label="This feature is currently unavailable with the current version of the JSAPI"
+              reference-element="clearPreviousObservations"
+            >
+              <span
+                >This feature is currently unavailable with the current version
+                of the JSAPI</span
+              >
+            </calcite-tooltip>
+            <calcite-button
+              id="clearPreviousObservations"
+              width="full"
+              disabled="true"
+              >Clear Previous Observations</calcite-button
             >
           </div>
           <div class="input-group input-group-full">

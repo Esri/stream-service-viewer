@@ -65,6 +65,9 @@
             basemap: "gray-vector"
           });
 
+          map.on("layer-add", onLayerAdded);
+          map.on("layer-remove", onLayerRemoved);
+
           new BasemapGallery(
             {
               showArcGISBasemaps: true,
@@ -92,6 +95,7 @@
             "click",
             togglePanel
           );
+          on(dojo.byId("subscribeUnsubscribe"), "click", toggleSubscription);
           on(dojo.byId("toggleStreamLayer"), "click", toggleStreamLayer);
           on(dojo.byId("clearPreviousObservations"), "click", function() {
             if (streamLayer) streamLayer.clear();
@@ -107,7 +111,7 @@
             domAttr.remove(dojo.byId("clearSpatialFilter"), "disabled");
           });
           on(dojo.byId("switchViewer"), "click", function() {
-            window.location.href = "./newViewer.html";
+            window.location.href = "./currentViewer.html";
           });
         }
 
@@ -147,6 +151,18 @@
          * Functions to add and remove Stream Layer
          *
          *************************************************/
+        function toggleSubscription() {
+          if (
+            streamLayer &&
+            streamLayer.socket &&
+            streamLayer.socket.readyState === 1
+          ) {
+            streamLayer.disconnect();
+          } else {
+            streamLayer.connect();
+          }
+        }
+
         function toggleStreamLayer() {
           streamLayer ? removeStreamLayer() : addStreamLayer();
         }
@@ -157,6 +173,7 @@
 
           //construct Stream Layer
           streamLayer = new StreamLayer(svcUrl, {
+            name: "myStreamLayer",
             definitionExpression: expressionFilter,
             geometryDefinition: spatialFilter,
             purgeOptions: { displayCount: 10000 }
@@ -165,9 +182,9 @@
           //When layer loads, register listeners for layer events and add layer to map
           streamLayer.on("load", function() {
             //Connect and Disconnect events
-            streamLayer.on("connect", processConnect);
-            streamLayer.on("disconnect", processDisconnect);
-            streamLayer.on("message", processMessage);
+            streamLayer.on("connect", onLayerConnected);
+            streamLayer.on("disconnect", onLayerDisconnected);
+            streamLayer.on("message", onMessage);
             streamLayer.on("connection-error", function() {
               createToaster(
                 "Alert",
@@ -208,21 +225,34 @@
          * Stream layer event handlers
          *
          *********************************************************/
-        function processConnect() {
-          dojo.byId("toggleStreamLayer").innerText = "Remove Stream Layer";
-          domAttr.remove(dojo.byId("clearPreviousObservations"), "disabled");
+        function onLayerAdded(event) {
+          if (streamLayer && streamLayer.name === event.layer.name) {
+            dojo.byId("toggleStreamLayer").innerText = "Remove Stream Layer";
+            domAttr.remove(dojo.byId("clearPreviousObservations"), "disabled");
+            domAttr.remove(dojo.byId("subscribeUnsubscribe"), "disabled");
+          }
         }
 
-        function processDisconnect() {
+        function onLayerRemoved() {
           dojo.byId("toggleStreamLayer").innerText = "Add Stream Layer";
           domAttr.set(
             dojo.byId("clearPreviousObservations"),
             "disabled",
             "true"
           );
+          dojo.byId("subscribeUnsubscribe").innerText = "Unsubscribe";
+          domAttr.set(dojo.byId("subscribeUnsubscribe"), "disabled", "true");
         }
 
-        function processMessage(msg) {
+        function onLayerConnected() {
+          dojo.byId("subscribeUnsubscribe").innerText = "Unsubscribe";
+        }
+
+        function onLayerDisconnected() {
+          dojo.byId("subscribeUnsubscribe").innerText = "Subscribe";
+        }
+
+        function onMessage(msg) {
           if (msg.error) {
             createToaster("Alert", msg.error[0], "red");
           } else if (msg.filter) {
@@ -344,6 +374,14 @@
           </div>
           <div class="input-group input-group-full">
             <calcite-button
+              id="subscribeUnsubscribe"
+              width="full"
+              disabled="true"
+              >Unsubscribe</calcite-button
+            >
+          </div>
+          <div class="input-group input-group-full">
+            <calcite-button
               id="clearPreviousObservations"
               width="full"
               disabled="true"
@@ -376,7 +414,7 @@
       <calcite-button
         id="switchViewer"
         style="position: absolute; bottom: 0; right: 0; z-index: 1; margin: 5px;"
-        >Switch to New Viewer</calcite-button
+        >Switch to Current Viewer</calcite-button
       >
     </div>
   </body>
