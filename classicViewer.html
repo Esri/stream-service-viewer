@@ -34,7 +34,7 @@
         "dijit/TitlePane",
         "dijit/layout/ContentPane",
         "dojo/domReady!"
-      ], function(
+      ], function (
         parser,
         Map,
         Draw,
@@ -77,7 +77,7 @@
           on(
             dojo.byId("controls"),
             on.selector(".config-header", "click"),
-            function(e) {
+            function (e) {
               if (e.target.type !== "checkbox") {
                 const sectionWrapper = e.selectorTarget.parentNode;
 
@@ -92,20 +92,20 @@
           );
           on(dojo.byId("subscribeUnsubscribe"), "click", toggleSubscription);
           on(dojo.byId("toggleStreamLayer"), "click", toggleStreamLayer);
-          on(dojo.byId("clearPreviousObservations"), "click", function() {
+          on(dojo.byId("clearPreviousObservations"), "click", function () {
             if (streamLayer) streamLayer.clear();
           });
           on(dojo.byId("applyWhereClause"), "click", applyWhereClause);
           on(dojo.byId("applySpatialFilter"), "click", applySpatialFilter);
           on(dojo.byId("clearSpatialFilter"), "click", clearSpatialFilter);
-          on(drawTools, "draw-end", function(evt) {
+          on(drawTools, "draw-end", function (evt) {
             drawTools.deactivate();
             spatialFilter = evt.geometry;
             drawSpatialFilter(spatialFilter);
             if (streamLayer) streamLayer.setGeometryDefinition(spatialFilter);
             domAttr.remove(dojo.byId("clearSpatialFilter"), "disabled");
           });
-          on(dojo.byId("switchViewer"), "click", function() {
+          on(dojo.byId("switchViewer"), "click", function () {
             window.location.href = "./currentViewer.html";
           });
         }
@@ -156,18 +156,18 @@
           });
 
           //When layer loads, register listeners for layer events and add layer to map
-          streamLayer.on("load", function() {
+          streamLayer.on("load", function () {
             //Connect and Disconnect events
             streamLayer.on("connect", onLayerConnected);
             streamLayer.on("disconnect", onLayerDisconnected);
             streamLayer.on("message", onMessage);
-            streamLayer.on("connection-error", function() {
+            streamLayer.on("connection-error", function () {
               removeStreamLayer();
               alert("Error connecting to the Stream Service");
             });
 
             // Add popup template
-            const fieldInfos = array.map(streamLayer.fields, function(field) {
+            const fieldInfos = array.map(streamLayer.fields, function (field) {
               return {
                 fieldName: field.name,
                 label: field.alias,
@@ -200,16 +200,28 @@
         function onLayerAdded(event) {
           if (streamLayer && streamLayer.name === event.layer.name) {
             dojo.byId("toggleStreamLayer").innerText = "Remove Stream Layer";
-            domClass.add(dojo.byId("clearPreviousObservations"), "esri-button--disabled");
-            domClass.remove(dojo.byId("subscribeUnsubscribe"), "esri-button--disabled");
+            domClass.add(
+              dojo.byId("clearPreviousObservations"),
+              "esri-button--disabled"
+            );
+            domClass.remove(
+              dojo.byId("subscribeUnsubscribe"),
+              "esri-button--disabled"
+            );
           }
         }
 
         function onLayerRemoved() {
           dojo.byId("toggleStreamLayer").innerText = "Add Stream Layer";
-          domClass.add(dojo.byId("clearPreviousObservations"), "esri-button--disabled");
+          domClass.add(
+            dojo.byId("clearPreviousObservations"),
+            "esri-button--disabled"
+          );
           dojo.byId("subscribeUnsubscribe").innerText = "Unsubscribe";
-          domClass.add(dojo.byId("subscribeUnsubscribe"), "esri-button--disabled");
+          domClass.add(
+            dojo.byId("subscribeUnsubscribe"),
+            "esri-button--disabled"
+          );
         }
 
         function onLayerConnected() {
@@ -221,7 +233,29 @@
         }
 
         function onMessage(msg) {
-          if (msg.error) alert(msg.error[0]);
+          if (msg.error) {
+            alert(msg.error[0]);
+          } else if (msg.filter) {
+            if (
+              msg.filter.hasOwnProperty("where") ||
+              msg.filter.hasOwnProperty("geometry")
+            ) {
+              alert(
+                "Successfully updated the filter. \nAttribute Filter: " +
+                  (msg.filter.where || "") +
+                  "\nSpatial Filter: " +
+                  (msg.filter.geometry
+                    ? typeof msg.filter.geometry === "object"
+                      ? JSON.stringify(msg.filter.geometry)
+                      : msg.filter.geometry
+                    : "")
+              );
+            } else {
+              alert(
+                "Successfully updated the filter. \n\nAttribute Filter: \n Spatial Filter: "
+              );
+            }
+          }
         }
 
         /************************************************
@@ -243,7 +277,10 @@
           spatialFilter = null;
           map.graphics.clear();
           if (streamLayer) streamLayer.setGeometryDefinition(null);
-          domClass.add(dojo.byId("clearSpatialFilter"), "esri-button--disabled");
+          domClass.add(
+            dojo.byId("clearSpatialFilter"),
+            "esri-button--disabled"
+          );
         }
 
         function drawSpatialFilter(bbox) {
@@ -280,7 +317,7 @@
         >
           <div
             data-dojo-type="dijit/layout/ContentPane"
-            style="width:380px; height:280px; overflow:auto;"
+            style="width: 380px; height: 280px; overflow: auto"
           >
             <div id="basemapGallery"></div>
           </div>
