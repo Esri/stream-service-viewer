@@ -81,6 +81,10 @@ body {
   right: 0;
 }
 
+#collapsedPane {
+  display: none;
+}
+
 #expanderIcon {
   display: none;
 }
@@ -154,12 +158,20 @@ section:first-of-type .config-header {
   color: #a6a6a6;
 }
 
-.header-actions-group .fa::before {
-  content: "\f077";
+.header-actions-group #expandedPane {
+  display: inline-block;
 }
 
-.section-hidden .header-actions-group .fa::before {
-  content: "\f078";
+.header-actions-group i {
+  font-size: 1.4em;
+}
+
+.section-hidden .header-actions-group #expandedPane {
+  display: none;
+}
+
+.section-hidden .header-actions-group #collapsedPane {
+  display: inline-block;
 }
 
 .header-actions-group i:hover {
@@ -192,8 +204,24 @@ section:first-of-type .config-header {
   width: 100%;
 }
 
+.input-group-flex {
+  display: flex;
+}
+
+#streamServiceUrl {
+  flex-basis: 100%;
+}
+
+#expressionFilter {
+  flex-grow: 2;
+}
+
+#applyWhereClause {
+  width: 25%;
+}
+
 .prev-element {
-  margin-right: 5px;
+  margin-right: 10px;
 }
 
 .flat .dijitDropDownButton .dijitButtonNode {

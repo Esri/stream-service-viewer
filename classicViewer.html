@@ -7,18 +7,8 @@
       rel="stylesheet"
       href="https://js.arcgis.com/3.42/esri/css/esri.css"
     />
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="https://js.arcgis.com/calcite-components/1.0.0-beta.97/calcite.css"
-    />
     <link rel="stylesheet" href="./streamServiceViewerStyles.css" />
     <script src="https://js.arcgis.com/3.42/"></script>
-    <script src="https://use.fontawesome.com/9482a0b1d1.js"></script>
-    <script
-      type="module"
-      src="https://js.arcgis.com/calcite-components/1.0.0-beta.97/calcite.esm.js"
-    ></script>
     <script>
       require([
         "dojo/parser",
@@ -56,7 +46,7 @@
         domClass,
         domAttr
       ) {
-        var map, drawTools, streamLayer, spatialFilter, expressionFilter;
+        let map, drawTools, streamLayer, spatialFilter, expressionFilter;
 
         parser.parse();
 
@@ -84,7 +74,7 @@
             on.selector(".config-header", "click"),
             function(e) {
               if (e.target.type !== "checkbox") {
-                var sectionWrapper = e.selectorTarget.parentNode;
+                const sectionWrapper = e.selectorTarget.parentNode;
 
                 domClass.toggle(sectionWrapper, "section-hidden");
               }
@@ -127,25 +117,6 @@
           );
         }
 
-        function createToaster(title, message, color) {
-          var calciteAlert = document.createElement("calcite-alert");
-          var alertTitle = document.createElement("div");
-          var alertMessage = document.createElement("div");
-
-          calciteAlert.setAttribute("open", "true");
-          calciteAlert.setAttribute("color", color);
-          calciteAlert.setAttribute("placement", "bottom-end");
-          alertTitle.setAttribute("slot", "title");
-          alertMessage.setAttribute("slot", "message");
-
-          alertTitle.innerText = title;
-          alertMessage.innerText = message;
-
-          calciteAlert.appendChild(alertTitle);
-          calciteAlert.appendChild(alertMessage);
-          document.getElementsByTagName("body")[0].appendChild(calciteAlert);
-        }
-
         /*************************************************
          *
          * Functions to add and remove Stream Layer
@@ -169,7 +140,7 @@
 
         function addStreamLayer() {
           //url to stream service
-          var svcUrl = dojo.byId("streamServiceUrl").value;
+          const svcUrl = dojo.byId("streamServiceUrl").value;
 
           //construct Stream Layer
           streamLayer = new StreamLayer(svcUrl, {
@@ -186,16 +157,12 @@
             streamLayer.on("disconnect", onLayerDisconnected);
             streamLayer.on("message", onMessage);
             streamLayer.on("connection-error", function() {
-              createToaster(
-                "Alert",
-                "Error connecting to the Stream Service",
-                "red"
-              );
               removeStreamLayer();
+              alert("Error connecting to the Stream Service");
             });
 
             // Add popup template
-            var fieldInfos = array.map(streamLayer.fields, function(field) {
+            const fieldInfos = array.map(streamLayer.fields, function(field) {
               return {
                 fieldName: field.name,
                 label: field.alias,
@@ -203,7 +170,7 @@
               };
             });
 
-            var template = new PopupTemplate({
+            const template = new PopupTemplate({
               fieldInfos: fieldInfos
             });
             streamLayer.setInfoTemplate(template);
@@ -228,20 +195,16 @@
         function onLayerAdded(event) {
           if (streamLayer && streamLayer.name === event.layer.name) {
             dojo.byId("toggleStreamLayer").innerText = "Remove Stream Layer";
-            domAttr.remove(dojo.byId("clearPreviousObservations"), "disabled");
-            domAttr.remove(dojo.byId("subscribeUnsubscribe"), "disabled");
+            domClass.add(dojo.byId("clearPreviousObservations"), "esri-button--disabled");
+            domClass.remove(dojo.byId("subscribeUnsubscribe"), "esri-button--disabled");
           }
         }
 
         function onLayerRemoved() {
           dojo.byId("toggleStreamLayer").innerText = "Add Stream Layer";
-          domAttr.set(
-            dojo.byId("clearPreviousObservations"),
-            "disabled",
-            "true"
-          );
+          domClass.add(dojo.byId("clearPreviousObservations"), "esri-button--disabled");
           dojo.byId("subscribeUnsubscribe").innerText = "Unsubscribe";
-          domAttr.set(dojo.byId("subscribeUnsubscribe"), "disabled", "true");
+          domClass.add(dojo.byId("subscribeUnsubscribe"), "esri-button--disabled");
         }
 
         function onLayerConnected() {
@@ -253,33 +216,7 @@
         }
 
         function onMessage(msg) {
-          if (msg.error) {
-            createToaster("Alert", msg.error[0], "red");
-          } else if (msg.filter) {
-            if (
-              msg.filter.hasOwnProperty("where") ||
-              msg.filter.hasOwnProperty("geometry")
-            ) {
-              createToaster(
-                "Success",
-                "Successfully updated the filter. \nAttribute Filter: " +
-                  (msg.filter.where || "") +
-                  "\nSpatial Filter: " +
-                  (msg.filter.geometry
-                    ? typeof msg.filter.geometry === "object"
-                      ? JSON.stringify(msg.filter.geometry)
-                      : msg.filter.geometry
-                    : ""),
-                "green"
-              );
-            } else {
-              createToaster(
-                "Success",
-                "Successfully updated the filter. \n\nAttribute Filter: \n Spatial Filter: ",
-                "green"
-              );
-            }
-          }
+          if (msg.error) alert(msg.error[0]);
         }
 
         /************************************************
@@ -301,7 +238,7 @@
           spatialFilter = null;
           map.graphics.clear();
           if (streamLayer) streamLayer.setGeometryDefinition(null);
-          domAttr.set(dojo.byId("clearSpatialFilter"), "disabled", "true");
+          domClass.add(dojo.byId("clearSpatialFilter"), "esri-button--disabled");
         }
 
         function drawSpatialFilter(bbox) {
@@ -329,7 +266,6 @@
       });
     </script>
   </head>
-
   <body class="flat">
     <div id="map">
       <div class="basemapGallery-container">
@@ -355,67 +291,72 @@
         <div class="config-header">
           <h2>Layers</h2>
           <div class="header-actions-group">
-            <i class="fa"></i>
+            <i id="collapsedPane" class="fa flat-chevron-down"></i>
+            <i id="expandedPane" class="fa flat-chevron-up"></i>
           </div>
         </div>
         <div class="config-content">
           <div class="input-group input-group-full">
-            <calcite-input
+            <input
               type="text"
               id="streamServiceUrl"
+              class="esri-input"
               placeholder="Stream layer url"
-              value="https://geoeventsample1.esri.com/server/rest/services/FAAStream/StreamServer"
-            ></calcite-input>
+              value="https:/geoeventsample1.esri.com/server/rest/services/FAAStream/StreamServer"
+            />
           </div>
           <div class="input-group input-group-full">
-            <calcite-button id="toggleStreamLayer" width="full"
-              >Add Stream Layer</calcite-button
-            >
+            <button id="toggleStreamLayer" class="esri-button">
+              Add Stream Layer
+            </button>
           </div>
           <div class="input-group input-group-full">
-            <calcite-button
+            <button
               id="subscribeUnsubscribe"
-              width="full"
-              disabled="true"
-              >Unsubscribe</calcite-button
+              class="esri-button esri-button--disabled"
             >
+              Unsubscribe
+            </button>
           </div>
           <div class="input-group input-group-full">
-            <calcite-button
+            <button
               id="clearPreviousObservations"
-              width="full"
-              disabled="true"
-              >Clear Previous Observations</calcite-button
+              class="esri-button esri-button--disabled"
             >
+              Clear Previous Observations
+            </button>
           </div>
           <div class="input-group input-group-full">
-            <calcite-input
+            <input
               id="expressionFilter"
+              class="esri-input"
               type="text"
               placeholder="Attribute Filter (where clause)"
-            >
-              <calcite-button id="applyWhereClause" slot="action"
-                >Apply</calcite-button
-              >
-            </calcite-input>
+            />
+            <button id="applyWhereClause" class="esri-button">Apply</button>
           </div>
           <div class="input-group">
             <div class="input-row">
-              <calcite-button id="applySpatialFilter" class="prev-element"
-                >Apply Spatial Filter</calcite-button
+              <button id="applySpatialFilter" class="prev-element esri-button">
+                Apply Spatial Filter
+              </button>
+              <button
+                id="clearSpatialFilter"
+                class="esri-button esri-button--disabled"
               >
-              <calcite-button id="clearSpatialFilter" disabled="true"
-                >Clear Spatial Filter</calcite-button
-              >
+                Clear Spatial Filter
+              </button>
             </div>
           </div>
         </div>
       </section>
-      <calcite-button
-        id="switchViewer"
-        style="position: absolute; bottom: 0; right: 0; z-index: 1; margin: 5px;"
-        >Switch to Current Viewer</calcite-button
+      <section
+        style="position: absolute; bottom: 0; right: 0; padding: 5px 10px"
       >
+        <button id="switchViewer" class="esri-button">
+          Switch to Current Viewer
+        </button>
+      </section>
     </div>
   </body>
 </html>
