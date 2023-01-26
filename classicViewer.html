@@ -3,6 +3,11 @@
   <head lang="en">
     <meta charset="UTF-8" />
     <title>Stream Service Viewer</title>
+    <!-- Gives us calcite based design - does not seem to interfere with the 3x css -->
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.25/esri/themes/light/main.css"
+    />
     <link
       rel="stylesheet"
       href="https://js.arcgis.com/3.42/esri/css/esri.css"
@@ -296,7 +301,7 @@
           </div>
         </div>
         <div class="config-content">
-          <div class="input-group input-group-full">
+          <div class="input-group input-group-full input-group-flex">
             <input
               type="text"
               id="streamServiceUrl"
@@ -326,7 +331,7 @@
               Clear Previous Observations
             </button>
           </div>
-          <div class="input-group input-group-full">
+          <div class="input-group input-group-full input-group-flex">
             <input
               id="expressionFilter"
               class="esri-input"
