@@ -19,7 +19,9 @@
         "esri/PopupTemplate",
         "esri/widgets/Sketch/SketchViewModel",
         "esri/layers/GraphicsLayer",
-        "esri/widgets/Expand"
+        "esri/widgets/Expand",
+        "esri/widgets/LayerList",
+        "esri/widgets/Legend"
       ], function (
         Map,
         MapView,
@@ -29,7 +31,9 @@
         PopupTemplate,
         SketchViewModel,
         GraphicsLayer,
-        Expand
+        Expand,
+        LayerList,
+        Legend
       ) {
         let map,
           mapView,
@@ -53,7 +57,19 @@
             view: mapView,
             content: new BasemapGallery({ view: mapView })
           });
+          const layerListExpand = new Expand({
+            view: mapView,
+            content: new LayerList({ view: mapView }),
+            expanded: false
+          });
+          const legendExpand = new Expand({
+            view: mapView,
+            content: new Legend({ view: mapView })
+          });
+
           mapView.ui.add(bgExpand, "top-left");
+          mapView.ui.add(layerListExpand, "top-right");
+          mapView.ui.add(legendExpand, "bottom-left");
 
           sketchViewModelLayer = new GraphicsLayer();
           map.add(sketchViewModelLayer);

@@ -261,3 +261,7 @@ section:first-of-type .config-header {
   justify-content: space-between;
   width: 250px;
 }
+
+.esri-ui-top-right {
+  margin-right: 40px;
+}
