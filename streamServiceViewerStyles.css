@@ -265,3 +265,36 @@ section:first-of-type .config-header {
 .esri-ui-top-right {
   margin-right: 40px;
 }
+
+#panelWrapper {
+  background-color: white;
+  border: 1px solid gray;
+  width: 100%;
+  padding-left: 10px;
+  min-height: 450px;
+  max-height: 450px;
+  overflow-wrap: anywhere;
+}
+
+#panelHeading {
+  margin-top: 10px;
+}
+
+#panelMessage {
+  overflow: scroll;
+  height: 380px;
+  margin-top: 0;
+}
+
+#panelMessage span {
+  display: block;
+  margin-top: 10px;
+}
+
+#clear {
+  font-style: italic;
+  font-size: small;
+  right: 20px;
+  cursor: pointer;
+  position: absolute;
+}

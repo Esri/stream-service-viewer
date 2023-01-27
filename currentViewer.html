@@ -129,6 +129,11 @@
             .addEventListener("click", function () {
               window.location.href = "./classicViewer.html";
             });
+          document
+            .getElementById("clear")
+            .addEventListener("click", function () {
+              document.getElementById("panelMessage").innerText = "";
+            });
         }
 
         /*************************************************
@@ -140,6 +145,16 @@
           document
             .getElementsByTagName("body")[0]
             .classList.toggle("panel-collapsed");
+        }
+
+        function createToaster(message, type) {
+          const msg =
+            type === "success"
+              ? document.createTextNode("\u2713 " + message)
+              : document.createTextNode("\u2716 " + message);
+          const element = document.createElement("span");
+          element.appendChild(msg);
+          document.getElementById("panelMessage").appendChild(element);
         }
 
         /*************************************************
@@ -181,7 +196,7 @@
             });
             layerView.watch("connectionError", function (error) {
               removeStreamLayer();
-              alert("Error connecting to the Stream Service");
+              createToaster("Error connecting to the Stream Service", "error");
             });
 
             streamLayer.popupTemplate = streamLayer.createPopupTemplate();
@@ -226,13 +241,13 @@
 
         function onMessage(msg) {
           if (msg.error) {
-            alert(sg.error[0]);
+            createToaster(msg.error[0], "error");
           } else if (msg.filter) {
             if (
               msg.filter.hasOwnProperty("where") ||
               msg.filter.hasOwnProperty("geometry")
             ) {
-              alert(
+              createToaster(
                 "Successfully updated the filter. \nAttribute Filter: " +
                   (msg.filter.where || "") +
                   "\nSpatial Filter: " +
@@ -240,11 +255,13 @@
                     ? typeof msg.filter.geometry === "object"
                       ? JSON.stringify(msg.filter.geometry)
                       : msg.filter.geometry
-                    : "")
+                    : ""),
+                "success"
               );
             } else {
-              alert(
-                "Successfully updated the filter. \n\nAttribute Filter: \n Spatial Filter: "
+              createToaster(
+                "Successfully updated the filter. \n\nAttribute Filter: \nSpatial Filter: ",
+                "success"
               );
             }
           }
@@ -367,6 +384,14 @@
                 Clear Spatial Filter
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+      <section>
+        <div class="config-content">
+          <div id="panelWrapper">
+            <h4 id="panelHeading">Messages <span id="clear">clear</span></h4>
+            <p id="panelMessage"></p>
           </div>
         </div>
       </section>
