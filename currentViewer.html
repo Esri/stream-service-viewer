@@ -7,45 +7,35 @@
       rel="stylesheet"
       href="https://js.arcgis.com/4.25/esri/themes/light/main.css"
     />
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="https://js.arcgis.com/calcite-components/1.0.0-beta.97/calcite.css"
-    />
     <link rel="stylesheet" href="./streamServiceViewerStyles.css" />
     <script src="https://js.arcgis.com/4.25/"></script>
-    <script src="https://use.fontawesome.com/9482a0b1d1.js"></script>
-    <script
-      type="module"
-      src="https://js.arcgis.com/calcite-components/1.0.0-beta.97/calcite.esm.js"
-    ></script>
     <script>
       require([
         "esri/Map",
         "esri/views/MapView",
         "esri/widgets/BasemapGallery",
         "esri/layers/StreamLayer",
-        "esri/geometry/Polygon",
         "esri/Graphic",
         "esri/PopupTemplate",
-        "esri/popup/FieldInfo",
         "esri/widgets/Sketch/SketchViewModel",
         "esri/layers/GraphicsLayer",
-        "esri/widgets/Expand"
-      ], function(
+        "esri/widgets/Expand",
+        "esri/widgets/LayerList",
+        "esri/widgets/Legend"
+      ], function (
         Map,
         MapView,
         BasemapGallery,
         StreamLayer,
-        Polygon,
         Graphic,
         PopupTemplate,
-        FieldInfo,
         SketchViewModel,
         GraphicsLayer,
-        Expand
+        Expand,
+        LayerList,
+        Legend
       ) {
-        var map,
+        let map,
           mapView,
           sketchViewModel,
           sketchViewModelLayer,
@@ -63,11 +53,23 @@
             container: "map"
           });
 
-          var bgExpand = new Expand({
+          const bgExpand = new Expand({
             view: mapView,
             content: new BasemapGallery({ view: mapView })
           });
+          const layerListExpand = new Expand({
+            view: mapView,
+            content: new LayerList({ view: mapView }),
+            expanded: false
+          });
+          const legendExpand = new Expand({
+            view: mapView,
+            content: new Legend({ view: mapView })
+          });
+
           mapView.ui.add(bgExpand, "top-left");
+          mapView.ui.add(layerListExpand, "top-right");
+          mapView.ui.add(legendExpand, "bottom-left");
 
           sketchViewModelLayer = new GraphicsLayer();
           map.add(sketchViewModelLayer);
@@ -81,7 +83,7 @@
             }
           });
 
-          sketchViewModel.on("create", function(obj) {
+          sketchViewModel.on("create", function (obj) {
             switch (obj.state) {
               case "complete":
                 spatialFilter = obj.graphic.geometry.extent;
@@ -89,7 +91,7 @@
                 if (streamLayer) streamLayer.geometryDefinition = spatialFilter;
                 document
                   .getElementById("clearSpatialFilter")
-                  .removeAttribute("disabled");
+                  .classList.remove("esri-button--disabled");
                 break;
               default:
                 break;
@@ -97,11 +99,12 @@
           });
 
           //connect click events to UI buttons
-          var headerElements = document.getElementsByClassName("config-header");
-          for (var i = 0; i < headerElements.length; i++) {
-            headerElements[i].addEventListener("click", function(e) {
+          const headerElements =
+            document.getElementsByClassName("config-header");
+          for (let i = 0; i < headerElements.length; i++) {
+            headerElements[i].addEventListener("click", function (e) {
               if (e.target.type !== "checkbox") {
-                var sectionWrapper = e.target.closest("section");
+                const sectionWrapper = e.target.closest("section");
                 sectionWrapper.classList.toggle("section-hidden");
               }
             });
@@ -123,8 +126,13 @@
             .addEventListener("click", clearSpatialFilter);
           document
             .getElementById("switchViewer")
-            .addEventListener("click", function() {
+            .addEventListener("click", function () {
               window.location.href = "./classicViewer.html";
+            });
+          document
+            .getElementById("clear")
+            .addEventListener("click", function () {
+              document.getElementById("panelMessage").innerText = "";
             });
         }
 
@@ -139,23 +147,14 @@
             .classList.toggle("panel-collapsed");
         }
 
-        function createToaster(title, message, color) {
-          var calciteAlert = document.createElement("calcite-alert");
-          var alertTitle = document.createElement("div");
-          var alertMessage = document.createElement("div");
-
-          calciteAlert.setAttribute("open", "true");
-          calciteAlert.setAttribute("color", color);
-          calciteAlert.setAttribute("placement", "bottom-end");
-          alertTitle.setAttribute("slot", "title");
-          alertMessage.setAttribute("slot", "message");
-
-          alertTitle.innerText = title;
-          alertMessage.innerText = message;
-
-          calciteAlert.appendChild(alertTitle);
-          calciteAlert.appendChild(alertMessage);
-          document.getElementsByTagName("body")[0].appendChild(calciteAlert);
+        function createToaster(message, type) {
+          const msg =
+            type === "success"
+              ? document.createTextNode("\u2713 " + message)
+              : document.createTextNode("\u2716 " + message);
+          const element = document.createElement("span");
+          element.appendChild(msg);
+          document.getElementById("panelMessage").appendChild(element);
         }
 
         /*************************************************
@@ -169,7 +168,7 @@
 
         function addStreamLayer() {
           //url to stream service
-          var svcUrl = document.getElementById("streamServiceUrl").value;
+          const svcUrl = document.getElementById("streamServiceUrl").value;
 
           //construct Stream Layer
           streamLayer = new StreamLayer({
@@ -185,23 +184,19 @@
           map.add(streamLayer);
 
           //When layer loads, register listeners for layer events and add layer to map
-          mapView.whenLayerView(streamLayer).then(function(layerView) {
+          mapView.whenLayerView(streamLayer).then(function (layerView) {
             onLayerAdded();
 
-            layerView.watch("connectionStatus", function(value) {
+            layerView.watch("connectionStatus", function (value) {
               if (value === "connected") {
                 onLayerAdded();
               } else {
                 onLayerRemoved();
               }
             });
-            layerView.watch("connectionError", function(error) {
-              createToaster(
-                "Alert",
-                "Error connecting to the Stream Service",
-                "red"
-              );
+            layerView.watch("connectionError", function (error) {
               removeStreamLayer();
+              createToaster("Error connecting to the Stream Service", "error");
             });
 
             streamLayer.popupTemplate = streamLayer.createPopupTemplate();
@@ -227,10 +222,10 @@
             "Remove Stream Layer";
           document
             .getElementById("subscribeUnsubscribe")
-            .removeAttribute("disabled");
+            .classList.remove("esri-button--disabled");
           document
             .getElementById("clearPreviousObservations")
-            .removeAttribute("disabled");
+            .classList.remove("esri-button-disabled");
         }
 
         function onLayerRemoved() {
@@ -238,33 +233,21 @@
             "Add Stream Layer";
           document
             .getElementById("subscribeUnsubscribe")
-            .setAttribute("disabled", "true");
+            .classList.add("esri-button--disabled");
           document
             .getElementById("clearPreviousObservations")
-            .setAttribute("disabled", "true");
-          // enable necessary buttons
-          if (spatialFilter)
-            document
-              .getElementById("clearSpatialFilter")
-              .removeAttribute("disabled");
-          document
-            .getElementById("applySpatialFilter")
-            .removeAttribute("disabled");
-          document
-            .getElementById("applyWhereClause")
-            .removeAttribute("disabled");
+            .classList.add("esri-button--disabled");
         }
 
         function onMessage(msg) {
           if (msg.error) {
-            createToaster("Alert", msg.error[0], "red");
+            createToaster(msg.error[0], "error");
           } else if (msg.filter) {
             if (
               msg.filter.hasOwnProperty("where") ||
               msg.filter.hasOwnProperty("geometry")
             ) {
               createToaster(
-                "Success",
                 "Successfully updated the filter. \nAttribute Filter: " +
                   (msg.filter.where || "") +
                   "\nSpatial Filter: " +
@@ -273,13 +256,12 @@
                       ? JSON.stringify(msg.filter.geometry)
                       : msg.filter.geometry
                     : ""),
-                "green"
+                "success"
               );
             } else {
               createToaster(
-                "Success",
-                "Successfully updated the filter. \n\nAttribute Filter: \n Spatial Filter: ",
-                "green"
+                "Successfully updated the filter. \n\nAttribute Filter: \nSpatial Filter: ",
+                "success"
               );
             }
           }
@@ -306,7 +288,7 @@
           if (streamLayer) streamLayer.geometryDefinition = null;
           document
             .getElementById("clearSpatialFilter")
-            .setAttribute("disabled", "true");
+            .classList.add("esri-button--disabled");
         }
 
         function drawSpatialFilter(geometry) {
@@ -333,7 +315,6 @@
       });
     </script>
   </head>
-
   <body class="flat">
     <div id="map"></div>
     <div class="collapser">
@@ -345,85 +326,82 @@
         <div class="config-header">
           <h2>Layers</h2>
           <div class="header-actions-group">
-            <i class="fa"></i>
+            <i id="collapsedPane" class="fa flat-chevron-down"></i>
+            <i id="expandedPane" class="fa flat-chevron-up"></i>
           </div>
         </div>
         <div class="config-content">
-          <div class="input-group input-group-full">
-            <calcite-input
+          <div class="input-group input-group-full input-group-flex">
+            <input
               type="text"
               id="streamServiceUrl"
+              class="esri-input"
               placeholder="Stream layer url"
-              value="https://geoeventsample1.esri.com/server/rest/services/FAAStream/StreamServer"
-            ></calcite-input>
+              value="https:/geoeventsample1.esri.com/server/rest/services/FAAStream/StreamServer"
+            />
           </div>
           <div class="input-group input-group-full">
-            <calcite-button id="toggleStreamLayer" width="full"
-              >Add Stream Layer</calcite-button
-            >
+            <button id="toggleStreamLayer" class="esri-button">
+              Add Stream Layer
+            </button>
           </div>
           <div class="input-group input-group-full">
-            <calcite-tooltip
-              label="This feature is currently unavailable with the current version of the JSAPI"
-              reference-element="subscribeUnsubscribe"
-            >
-              <span
-                >This feature is currently unavailable with the current version
-                of the JSAPI</span
-              >
-            </calcite-tooltip>
-            <calcite-button
+            <button
               id="subscribeUnsubscribe"
-              width="full"
-              disabled="true"
-              >Unsubscribe</calcite-button
+              class="esri-button esri-button--disabled"
+              title="This feature is currently unavailable with the current version of the JSAPI"
             >
+              Unsubscribe
+            </button>
           </div>
           <div class="input-group input-group-full">
-            <calcite-tooltip
-              label="This feature is currently unavailable with the current version of the JSAPI"
-              reference-element="clearPreviousObservations"
-            >
-              <span
-                >This feature is currently unavailable with the current version
-                of the JSAPI</span
-              >
-            </calcite-tooltip>
-            <calcite-button
+            <button
               id="clearPreviousObservations"
-              width="full"
-              disabled="true"
-              >Clear Previous Observations</calcite-button
+              class="esri-button esri-button--disabled"
+              title="This feature is currently unavailable with the current version of the JSAPI"
             >
+              Clear Previous Observations
+            </button>
           </div>
-          <div class="input-group input-group-full">
-            <calcite-input
+          <div class="input-group input-group-full input-group-flex">
+            <input
               id="expressionFilter"
+              class="esri-input"
               type="text"
               placeholder="Attribute Filter (where clause)"
-            >
-              <calcite-button id="applyWhereClause" slot="action"
-                >Apply</calcite-button
-              >
-            </calcite-input>
+            />
+            <button id="applyWhereClause" class="esri-button">Apply</button>
           </div>
           <div class="input-group">
             <div class="input-row">
-              <calcite-button id="applySpatialFilter" class="prev-element"
-                >Apply Spatial Filter</calcite-button
+              <button id="applySpatialFilter" class="prev-element esri-button">
+                Apply Spatial Filter
+              </button>
+              <button
+                id="clearSpatialFilter"
+                class="esri-button esri-button--disabled"
               >
-              <calcite-button id="clearSpatialFilter" disabled="true"
-                >Clear Spatial Filter</calcite-button
-              >
+                Clear Spatial Filter
+              </button>
             </div>
           </div>
         </div>
       </section>
-      <calcite-button
-        id="switchViewer"
-        style="position: absolute; bottom: 0; right: 0; z-index: 1; margin: 5px;"
-        >Switch to Classic Viewer</calcite-button
+      <section>
+        <div class="config-content">
+          <div id="panelWrapper">
+            <h4 id="panelHeading">Messages <span id="clear">clear</span></h4>
+            <p id="panelMessage"></p>
+          </div>
+        </div>
+      </section>
+      <section
+        style="position: absolute; bottom: 0; right: 0; padding: 5px 10px"
       >
+        <button id="switchViewer" class="esri-button">
+          Switch to Classic Viewer
+        </button>
+      </section>
     </div>
   </body>
 </html>
