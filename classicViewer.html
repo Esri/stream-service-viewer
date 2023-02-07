@@ -5,45 +5,46 @@
     <title>Stream Service Viewer</title>
     <style>
       .esri-button {
-        align-items:center;
-        background-color:#0079c1;
-        border:1px solid #0079c1;
-        color:#fff;
-        cursor:pointer;
-        display:flex;
-        font-family:inherit;
-        font-size:14px;
-        min-height:32px;
-        justify-content:center;
-        word-break:normal;
-        white-space:normal;
-        overflow:hidden;
-        padding:6px 7px;
-        width:100%;
-        transition:background-color 125ms ease-in-out,border 125ms ease-in-out
+        align-items: center;
+        background-color: #0079c1;
+        border: 1px solid #0079c1;
+        color: #fff;
+        cursor: pointer;
+        display: flex;
+        font-family: inherit;
+        font-size: 14px;
+        min-height: 32px;
+        justify-content: center;
+        word-break: normal;
+        white-space: normal;
+        overflow: hidden;
+        padding: 6px 7px;
+        width: 100%;
+        transition: background-color 125ms ease-in-out, border 125ms ease-in-out;
       }
 
       .esri-button:hover {
-        background-color:#00598e;
-        border:1px solid #00598e;
-        color:#fff
+        background-color: #00598e;
+        border: 1px solid #00598e;
+        color: #fff;
       }
 
       .esri-button--disabled {
-        opacity:.4;
-        pointer-events:none
+        opacity: 0.4;
+        pointer-events: none;
       }
 
       .esri-input {
-        background-color:#fff;
-        border:1px solid #959595;
-        color:#323232;
-        font-family:"Avenir Next","Helvetica Neue",Helvetica,Arial,sans-serif;
-        font-size:14px
+        background-color: #fff;
+        border: 1px solid #959595;
+        color: #323232;
+        font-family: "Avenir Next", "Helvetica Neue", Helvetica, Arial,
+          sans-serif;
+        font-size: 14px;
       }
-      .esri-input[type=text] {
-        height:32px;
-        padding:0 .5em
+      .esri-input[type="text"] {
+        height: 32px;
+        padding: 0 0.5em;
       }
     </style>
     <link
@@ -141,7 +142,10 @@
             spatialFilter = evt.geometry;
             drawSpatialFilter(spatialFilter);
             if (streamLayer) streamLayer.setGeometryDefinition(spatialFilter);
-            domClass.remove(dojo.byId("clearSpatialFilter"), "esri-button--disabled");
+            domClass.remove(
+              dojo.byId("clearSpatialFilter"),
+              "esri-button--disabled"
+            );
           });
           on(dojo.byId("switchViewer"), "click", function () {
             window.location.href = "./currentViewer.html";
@@ -251,7 +255,7 @@
         function onLayerAdded(event) {
           if (streamLayer && streamLayer.name === event.layer.name) {
             dojo.byId("toggleStreamLayer").innerText = "Remove Stream Layer";
-            domClass.add(
+            domClass.remove(
               dojo.byId("clearPreviousObservations"),
               "esri-button--disabled"
             );
@@ -306,7 +310,7 @@
               createToaster(
                 "Successfully updated the filter. \n\nAttribute Filter: \nSpatial Filter: ",
                 "success"
-              );  
+              );
             }
           }
         }

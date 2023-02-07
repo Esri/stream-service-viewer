@@ -89,9 +89,7 @@
               case "complete":
                 spatialFilter = obj.graphic.geometry.extent;
                 drawSpatialFilter(spatialFilter);
-                if (streamLayer) {
-                  streamLayer.sendMessageToSocket({filter:{geometry: JSON.stringify(spatialFilter.clone().expand(0.5))}});
-                }
+                applySpatialFilter(spatialFilter);
                 document
                   .getElementById("clearSpatialFilter")
                   .classList.remove("esri-button--disabled");
@@ -126,7 +124,7 @@
             .addEventListener("click", applyWhereClause);
           document
             .getElementById("applySpatialFilter")
-            .addEventListener("click", applySpatialFilter);
+            .addEventListener("click", sketchSpatialFilter);
           document
             .getElementById("clearSpatialFilter")
             .addEventListener("click", clearSpatialFilter);
@@ -169,7 +167,7 @@
               : document.createTextNode("\u2716 " + message);
           const element = document.createElement("span");
           element.appendChild(msg);
-          document.getElementById("panelMessage").appendChild(element);
+          document.getElementById("panelMessage").prepend(element);
         }
 
         /*************************************************
@@ -180,17 +178,15 @@
         function toggleSubscription() {
           if (
             streamLayerView &&
-            streamLayerView.connectionStatus === 'paused'
+            streamLayerView.connectionStatus === "paused"
           ) {
             streamLayerView.resume();
-            document
-              .getElementById("subscribeUnsubscribe")
-              .innerText = "Unsubscribe";
+            document.getElementById("subscribeUnsubscribe").innerText =
+              "Unsubscribe";
           } else {
             streamLayerView.pause();
-            document
-              .getElementById("subscribeUnsubscribe")
-              .innerText = "Subscribe";
+            document.getElementById("subscribeUnsubscribe").innerText =
+              "Subscribe";
           }
         }
 
@@ -220,6 +216,7 @@
             streamLayerView = layerView;
             onLayerAdded();
 
+            layerView.on("message-received", onMessage);
             layerView.watch("connectionError", function (error) {
               removeStreamLayer();
               createToaster("Error connecting to the Stream Service", "error");
@@ -260,9 +257,8 @@
           document
             .getElementById("subscribeUnsubscribe")
             .classList.add("esri-button--disabled");
-          document.
-            getElementById("subscribeUnsubscribe")
-            .innerText = "Unsubscribe";
+          document.getElementById("subscribeUnsubscribe").innerText =
+            "Unsubscribe";
           document
             .getElementById("clearPreviousObservations")
             .classList.add("esri-button--disabled");
@@ -304,18 +300,30 @@
         function applyWhereClause() {
           expressionFilter = document.getElementById("expressionFilter").value;
           if (streamLayer) {
-            streamLayer.sendMessageToSocket({filter:{where: expressionFilter}});
+            streamLayer.sendMessageToSocket({
+              filter: { where: expressionFilter }
+            });
           }
         }
 
-        function applySpatialFilter() {
+        function applySpatialFilter(geometry) {
+          if (streamLayer) {
+            streamLayer.sendMessageToSocket({
+              filter: { geometry: JSON.stringify(geometry) }
+            });
+          }
+        }
+
+        function sketchSpatialFilter() {
           sketchViewModel.create("rectangle");
         }
 
         function clearSpatialFilter() {
           spatialFilter = null;
           sketchViewModelLayer.removeAll();
-          if (streamLayer) streamLayer.geometryDefinition = null;
+          if (streamLayer) {
+            streamLayer.sendMessageToSocket({ filter: { geometry: null } });
+          }
           document
             .getElementById("clearSpatialFilter")
             .classList.add("esri-button--disabled");
