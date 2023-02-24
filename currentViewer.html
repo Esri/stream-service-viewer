@@ -8,7 +8,7 @@
       href="https://js.arcgis.com/4.25/esri/themes/light/main.css"
     />
     <link rel="stylesheet" href="./streamServiceViewerStyles.css" />
-    <script src="https://js.arcgis.com/4.25/"></script>
+    <script src="https://js.arcgis.com/4.26/"></script>
     <script>
       require([
         "esri/Map",
@@ -40,6 +40,7 @@
           sketchViewModel,
           sketchViewModelLayer,
           streamLayer,
+          streamLayerView,
           spatialFilter,
           expressionFilter;
 
@@ -88,7 +89,7 @@
               case "complete":
                 spatialFilter = obj.graphic.geometry.extent;
                 drawSpatialFilter(spatialFilter);
-                if (streamLayer) streamLayer.geometryDefinition = spatialFilter;
+                applySpatialFilter(spatialFilter);
                 document
                   .getElementById("clearSpatialFilter")
                   .classList.remove("esri-button--disabled");
@@ -116,14 +117,26 @@
             .getElementById("toggleStreamLayer")
             .addEventListener("click", toggleStreamLayer);
           document
+            .getElementById("subscribeUnsubscribe")
+            .addEventListener("click", toggleSubscription);
+          document
             .getElementById("applyWhereClause")
             .addEventListener("click", applyWhereClause);
           document
             .getElementById("applySpatialFilter")
-            .addEventListener("click", applySpatialFilter);
+            .addEventListener("click", sketchSpatialFilter);
           document
             .getElementById("clearSpatialFilter")
             .addEventListener("click", clearSpatialFilter);
+          document
+            .getElementById("clearPreviousObservations")
+            .addEventListener("click", function () {
+              if (streamLayer) {
+                streamLayer.sendMessageToClient({
+                  type: "clear"
+                });
+              }
+            });
           document
             .getElementById("switchViewer")
             .addEventListener("click", function () {
@@ -154,7 +167,7 @@
               : document.createTextNode("\u2716 " + message);
           const element = document.createElement("span");
           element.appendChild(msg);
-          document.getElementById("panelMessage").appendChild(element);
+          document.getElementById("panelMessage").prepend(element);
         }
 
         /*************************************************
@@ -162,6 +175,21 @@
          * Functions to add and remove Stream Layer
          *
          *************************************************/
+        function toggleSubscription() {
+          if (
+            streamLayerView &&
+            streamLayerView.connectionStatus === "paused"
+          ) {
+            streamLayerView.resume();
+            document.getElementById("subscribeUnsubscribe").innerText =
+              "Unsubscribe";
+          } else {
+            streamLayerView.pause();
+            document.getElementById("subscribeUnsubscribe").innerText =
+              "Subscribe";
+          }
+        }
+
         function toggleStreamLayer() {
           streamLayer ? removeStreamLayer() : addStreamLayer();
         }
@@ -185,15 +213,10 @@
 
           //When layer loads, register listeners for layer events and add layer to map
           mapView.whenLayerView(streamLayer).then(function (layerView) {
+            streamLayerView = layerView;
             onLayerAdded();
 
-            layerView.watch("connectionStatus", function (value) {
-              if (value === "connected") {
-                onLayerAdded();
-              } else {
-                onLayerRemoved();
-              }
-            });
+            layerView.on("message-received", onMessage);
             layerView.watch("connectionError", function (error) {
               removeStreamLayer();
               createToaster("Error connecting to the Stream Service", "error");
@@ -225,7 +248,7 @@
             .classList.remove("esri-button--disabled");
           document
             .getElementById("clearPreviousObservations")
-            .classList.remove("esri-button-disabled");
+            .classList.remove("esri-button--disabled");
         }
 
         function onLayerRemoved() {
@@ -234,6 +257,8 @@
           document
             .getElementById("subscribeUnsubscribe")
             .classList.add("esri-button--disabled");
+          document.getElementById("subscribeUnsubscribe").innerText =
+            "Unsubscribe";
           document
             .getElementById("clearPreviousObservations")
             .classList.add("esri-button--disabled");
@@ -274,18 +299,31 @@
          ************************************************/
         function applyWhereClause() {
           expressionFilter = document.getElementById("expressionFilter").value;
-          if (streamLayer)
-            streamLayer.definitionExpression = expressionFilter || null;
+          if (streamLayer) {
+            streamLayer.sendMessageToSocket({
+              filter: { where: expressionFilter }
+            });
+          }
         }
 
-        function applySpatialFilter() {
+        function applySpatialFilter(geometry) {
+          if (streamLayer) {
+            streamLayer.sendMessageToSocket({
+              filter: { geometry: JSON.stringify(geometry) }
+            });
+          }
+        }
+
+        function sketchSpatialFilter() {
           sketchViewModel.create("rectangle");
         }
 
         function clearSpatialFilter() {
           spatialFilter = null;
           sketchViewModelLayer.removeAll();
-          if (streamLayer) streamLayer.geometryDefinition = null;
+          if (streamLayer) {
+            streamLayer.sendMessageToSocket({ filter: { geometry: null } });
+          }
           document
             .getElementById("clearSpatialFilter")
             .classList.add("esri-button--disabled");
@@ -349,7 +387,6 @@
             <button
               id="subscribeUnsubscribe"
               class="esri-button esri-button--disabled"
-              title="This feature is currently unavailable with the current version of the JSAPI"
             >
               Unsubscribe
             </button>
@@ -358,7 +395,6 @@
             <button
               id="clearPreviousObservations"
               class="esri-button esri-button--disabled"
-              title="This feature is currently unavailable with the current version of the JSAPI"
             >
               Clear Previous Observations
             </button>
