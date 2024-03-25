@@ -249,6 +249,8 @@
           document
             .getElementById("clearPreviousObservations")
             .classList.remove("esri-button--disabled");
+          document.getElementById("connectDisconnect")
+            .classList.remove("esri-button--disabled");
         }
 
         function onLayerRemoved() {
@@ -262,6 +264,10 @@
           document
             .getElementById("clearPreviousObservations")
             .classList.add("esri-button--disabled");
+          document.getElementById("connectDisconnect")
+            .classList.add("esri-button--disabled");
+          document.getElementById("connectDisconnect").innerText = 
+            "Disconnect";
         }
 
         function onMessage(msg) {
@@ -381,6 +387,11 @@
           <div class="input-group input-group-full">
             <button id="toggleStreamLayer" class="esri-button">
               Add Stream Layer
+            </button>
+          </div>
+          <div class="input-group input-group-full">
+            <button id="connectDisconnect" class="esri-button esri-button--disabled">
+              Disconnect
             </button>
           </div>
           <div class="input-group input-group-full">
