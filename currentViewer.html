@@ -129,6 +129,9 @@
             .getElementById("clearSpatialFilter")
             .addEventListener("click", clearSpatialFilter);
           document
+            .getElementById("connectDisconnect")
+            .addEventListener("click", toggleConnection);
+          document
             .getElementById("clearPreviousObservations")
             .addEventListener("click", function () {
               if (streamLayer) {
@@ -187,6 +190,18 @@
             streamLayerView.pause();
             document.getElementById("subscribeUnsubscribe").innerText =
               "Subscribe";
+          }
+        }
+
+        function toggleConnection() {
+          if (streamLayerView) {
+            if (streamLayerView.connectionStatus === "disconnected") {
+              streamLayerView.connect();
+              document.getElementById("connectDisconnect").innerText = "Disconnect";
+            } else {
+              streamLayerView.disconnect();
+              document.getElementById("connectDisconnect").innerText = "Connect";
+            }
           }
         }
 
