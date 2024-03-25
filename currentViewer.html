@@ -197,17 +197,32 @@
           if (streamLayerView) {
             if (streamLayerView.connectionStatus === "disconnected") {
               streamLayerView.connect();
-              document.getElementById("connectDisconnect").innerText = "Disconnect";
+              document.getElementById("connectDisconnect").innerText =
+                "Disconnect";
 
               document.getElementById("clearPreviousObservations")
                 .classList.remove("esri-button--disabled")
+
+              document.getElementById("subscribeUnsubscribe").innerText =
+                "Unsubscribe";
+              document.getElementById("subscribeUnsubscribe")
+                .classList.remove("esri-button--disabled");
             } else {
               streamLayerView.disconnect();
-              document.getElementById("connectDisconnect").innerText = "Connect";
+              document.getElementById("connectDisconnect").innerText =
+                "Connect";
 
               // Previous observations cannot be cleared when disconnected.
               document.getElementById("clearPreviousObservations")
                 .classList.add("esri-button--disabled")
+
+              // Pausing / resuming a disconnected stream layer has no effect,
+              // so we'll disable the button and set it up so the user can
+              // subscribe again
+              document.getElementById("subscribeUnsubscribe").innerText =
+                "Subscribe";
+              document.getElementById("subscribeUnsubscribe")
+                .classList.add("esri-button--disabled");
             }
           }
         }
