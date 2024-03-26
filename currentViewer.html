@@ -117,7 +117,7 @@
             .getElementById("toggleStreamLayer")
             .addEventListener("click", toggleStreamLayer);
           document
-            .getElementById("subscribeUnsubscribe")
+            .getElementById("pauseResume")
             .addEventListener("click", toggleSubscription);
           document
             .getElementById("applyWhereClause")
@@ -184,12 +184,12 @@
             streamLayerView.connectionStatus === "paused"
           ) {
             streamLayerView.resume();
-            document.getElementById("subscribeUnsubscribe").innerText =
-              "Unsubscribe";
+            document.getElementById("pauseResume").innerText =
+              "Pause";
           } else {
             streamLayerView.pause();
-            document.getElementById("subscribeUnsubscribe").innerText =
-              "Subscribe";
+            document.getElementById("pauseResume").innerText =
+              "Resume";
           }
         }
 
@@ -203,9 +203,9 @@
               document.getElementById("clearPreviousObservations")
                 .classList.remove("esri-button--disabled")
 
-              document.getElementById("subscribeUnsubscribe").innerText =
-                "Unsubscribe";
-              document.getElementById("subscribeUnsubscribe")
+              document.getElementById("pauseResume").innerText =
+                "Pause";
+              document.getElementById("pauseResume")
                 .classList.remove("esri-button--disabled");
             } else {
               streamLayerView.disconnect();
@@ -219,9 +219,9 @@
               // Pausing / resuming a disconnected stream layer has no effect,
               // so we'll disable the button and set it up so the user can
               // subscribe again
-              document.getElementById("subscribeUnsubscribe").innerText =
-                "Subscribe";
-              document.getElementById("subscribeUnsubscribe")
+              document.getElementById("pauseResume").innerText =
+                "Resume";
+              document.getElementById("pauseResume")
                 .classList.add("esri-button--disabled");
             }
           }
@@ -281,7 +281,7 @@
           document.getElementById("toggleStreamLayer").innerText =
             "Remove Stream Layer";
           document
-            .getElementById("subscribeUnsubscribe")
+            .getElementById("pauseResume")
             .classList.remove("esri-button--disabled");
           document
             .getElementById("clearPreviousObservations")
@@ -294,10 +294,10 @@
           document.getElementById("toggleStreamLayer").innerText =
             "Add Stream Layer";
           document
-            .getElementById("subscribeUnsubscribe")
+            .getElementById("pauseResume")
             .classList.add("esri-button--disabled");
-          document.getElementById("subscribeUnsubscribe").innerText =
-            "Unsubscribe";
+          document.getElementById("pauseResume").innerText =
+            "Pause";
           document
             .getElementById("clearPreviousObservations")
             .classList.add("esri-button--disabled");
@@ -433,10 +433,10 @@
           </div>
           <div class="input-group input-group-full">
             <button
-              id="subscribeUnsubscribe"
+              id="pauseResume"
               class="esri-button esri-button--disabled"
             >
-              Unsubscribe
+              Pause
             </button>
           </div>
           <div class="input-group input-group-full">
