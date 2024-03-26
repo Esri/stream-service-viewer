@@ -189,10 +189,14 @@
             streamLayerView.resume();
             document.getElementById("pauseResume").innerText =
               "Pause";
+            document.getElementById("pauseResume").title =
+              "Pause the connection to stop new observations from being applied until resuming. Data will be received but will not update the layer view until resumed.";
           } else {
             streamLayerView.pause();
             document.getElementById("pauseResume").innerText =
               "Resume";
+            document.getElementById("pauseResume").title =
+              "Resume the connection, apply any observations received while paused, and update the layer view with new observations.";
           }
         }
 
@@ -217,6 +221,8 @@
               streamLayerView.disconnect();
               document.getElementById("connectDisconnect").innerText =
                 "Connect";
+              document.getElementById("connectDisconnect").title =
+                "Connect to the stream service to stream new observations.";
 
               // Previous observations cannot be cleared when disconnected.
               document.getElementById("clearPreviousObservations")
@@ -304,18 +310,25 @@
         function onLayerRemoved() {
           document.getElementById("toggleStreamLayer").innerText =
             "Add Stream Layer";
+
           document
             .getElementById("pauseResume")
             .classList.add("esri-button--disabled");
           document.getElementById("pauseResume").innerText =
             "Pause";
+          document.getElementById("pauseResume").title =
+            "Pause the connection to stop new observations from being applied until resuming. Data will be received but will not update the layer view until resumed.";
+
           document
             .getElementById("clearPreviousObservations")
             .classList.add("esri-button--disabled");
+
           document.getElementById("connectDisconnect")
             .classList.add("esri-button--disabled");
           document.getElementById("connectDisconnect").innerText = 
             "Disconnect";
+          document.getElementById("connectDisconnect").title =
+            "Disconnect from the stream service. New observations will not be streamed until reconnecting.";
         }
 
         function onMessage(msg) {
@@ -355,6 +368,8 @@
           if (isConnectingFromConnectCall && connectionStatus === "connected") {
             document.getElementById("connectDisconnect").innerText =
               "Disconnect";
+            document.getElementById("connectDisconnect").title =
+              "Disconnect from the stream service. New observations will not be streamed until reconnecting.";
             document.getElementById("connectDisconnect")
               .classList.remove("esri-button--disabled");
 
@@ -363,6 +378,8 @@
 
             document.getElementById("pauseResume").innerText =
               "Pause";
+            document.getElementById("pauseResume").title =
+              "Pause the connection to stop new observations from being applied until resuming. Data will be received but will not update the layer view until resumed.";
             document.getElementById("pauseResume")
               .classList.remove("esri-button--disabled");
 
@@ -462,7 +479,11 @@
             </button>
           </div>
           <div class="input-group input-group-full">
-            <button id="connectDisconnect" class="esri-button esri-button--disabled">
+            <button
+              id="connectDisconnect"
+              class="esri-button esri-button--disabled"
+              title="Disconnect from the stream service. New observations will not be streamed until reconnecting."
+            >
               Disconnect
             </button>
           </div>
@@ -470,6 +491,7 @@
             <button
               id="pauseResume"
               class="esri-button esri-button--disabled"
+              title="Pause the connection to stop new observations from being applied until resuming. Data will be received but will not update the layer view until resumed."
             >
               Pause
             </button>
