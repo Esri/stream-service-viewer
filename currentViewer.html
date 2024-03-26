@@ -393,17 +393,35 @@
         function applyWhereClause() {
           expressionFilter = document.getElementById("expressionFilter").value;
           if (streamLayer) {
-            streamLayer.sendMessageToSocket({
-              filter: { where: expressionFilter }
-            });
+            if (document.getElementById("useWebsocketMessage").checked) {
+              streamLayer.sendMessageToSocket({
+                filter: { where: expressionFilter }
+              });
+            } else {
+              streamLayer.definitionExpression = expressionFilter;
+
+              createToaster(
+                "Successfully updated the filter. \nAttribute Filter: " + expressionFilter,
+                "success"
+              );
+            }
           }
         }
 
         function applySpatialFilter(geometry) {
           if (streamLayer) {
-            streamLayer.sendMessageToSocket({
-              filter: { geometry: JSON.stringify(geometry) }
-            });
+            if (document.getElementById("useWebsocketMessage").checked) {
+              streamLayer.sendMessageToSocket({
+                filter: { geometry: JSON.stringify(geometry) }
+              });
+            } else {
+              streamLayer.geometryDefinition = geometry;
+
+              createToaster(
+                "Successfully updated the filter. \nSpatial Filter: " + JSON.stringify(geometry),
+                "success"
+              );
+            }
           }
         }
 
@@ -415,7 +433,16 @@
           spatialFilter = null;
           sketchViewModelLayer.removeAll();
           if (streamLayer) {
-            streamLayer.sendMessageToSocket({ filter: { geometry: null } });
+            if (document.getElementById("useWebsocketMessage").checked) {
+              streamLayer.sendMessageToSocket({ filter: { geometry: null } });
+            } else {
+              streamLayer.geometryDefinition = null;
+
+              createToaster(
+                "Successfully updated the filter. \nSpatial Filter: ",
+                "success"
+              );
+            }
           }
           disableButton("clearSpatialFilter");
         }
@@ -521,6 +548,14 @@
                 Clear Spatial Filter
               </button>
             </div>
+          </div>
+          <div class="input-group input-group-full">
+            <input
+              id="useWebsocketMessage"
+              class="esri-input"
+              type="checkbox"
+            />
+            <label for="useWebsocketMessage">Use websocket messages</label>
           </div>
         </div>
       </section>
