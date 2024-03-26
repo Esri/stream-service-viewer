@@ -21,7 +21,8 @@
         "esri/layers/GraphicsLayer",
         "esri/widgets/Expand",
         "esri/widgets/LayerList",
-        "esri/widgets/Legend"
+        "esri/widgets/Legend",
+        "esri/core/reactiveUtils"
       ], function (
         Map,
         MapView,
@@ -33,7 +34,8 @@
         GraphicsLayer,
         Expand,
         LayerList,
-        Legend
+        Legend,
+        reactiveUtils
       ) {
         let map,
           mapView,
@@ -42,7 +44,8 @@
           streamLayer,
           streamLayerView,
           spatialFilter,
-          expressionFilter;
+          expressionFilter,
+          isConnectingFromConnectCall;
 
         function init() {
           map = new Map({
@@ -197,16 +200,19 @@
           if (streamLayerView) {
             if (streamLayerView.connectionStatus === "disconnected") {
               streamLayerView.connect();
+
+              /*
+              * The button is disabled and relevant text is displayed
+              * to prevent a bug where the user can click disconnect while
+              * disconnected. Handling for when the layer is connected is
+              * in the layer's connection status change handler.
+              */
               document.getElementById("connectDisconnect").innerText =
-                "Disconnect";
+                    "Connecting";
+                  document.getElementById("connectDisconnect")
+                    .classList.add("esri-button--disabled");
 
-              document.getElementById("clearPreviousObservations")
-                .classList.remove("esri-button--disabled")
-
-              document.getElementById("pauseResume").innerText =
-                "Pause";
-              document.getElementById("pauseResume")
-                .classList.remove("esri-button--disabled");
+              isConnectingFromConnectCall = true;
             } else {
               streamLayerView.disconnect();
               document.getElementById("connectDisconnect").innerText =
@@ -258,6 +264,11 @@
               removeStreamLayer();
               createToaster("Error connecting to the Stream Service", "error");
             });
+
+            reactiveUtils.watch(
+              () => layerView.connectionStatus,
+              () => onConnectionStatusChange(layerView.connectionStatus)
+            )
 
             streamLayer.popupTemplate = streamLayer.createPopupTemplate();
           });
@@ -332,6 +343,30 @@
                 "success"
               );
             }
+          }
+        }
+
+        function onConnectionStatusChange(connectionStatus) {
+          /*
+          * This will fire if the user has clicked the "connect" button after a
+          * disconnect. This will prevent a bug from occurring where the
+          * disconnect button can be clicked while still disconnected.
+          */
+          if (isConnectingFromConnectCall && connectionStatus === "connected") {
+            document.getElementById("connectDisconnect").innerText =
+              "Disconnect";
+            document.getElementById("connectDisconnect")
+              .classList.remove("esri-button--disabled");
+
+            document.getElementById("clearPreviousObservations")
+              .classList.remove("esri-button--disabled")
+
+            document.getElementById("pauseResume").innerText =
+              "Pause";
+            document.getElementById("pauseResume")
+              .classList.remove("esri-button--disabled");
+
+            isConnectingFromConnectCall = false;
           }
         }
 
