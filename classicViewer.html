@@ -272,7 +272,7 @@
             dojo.byId("clearPreviousObservations"),
             "esri-button--disabled"
           );
-          dojo.byId("subscribeUnsubscribe").innerText = "Unsubscribe";
+          dojo.byId("subscribeUnsubscribe").innerText = "Disconnect";
           domClass.add(
             dojo.byId("subscribeUnsubscribe"),
             "esri-button--disabled"
@@ -280,11 +280,11 @@
         }
 
         function onLayerConnected() {
-          dojo.byId("subscribeUnsubscribe").innerText = "Unsubscribe";
+          dojo.byId("subscribeUnsubscribe").innerText = "Disconnect";
         }
 
         function onLayerDisconnected() {
-          dojo.byId("subscribeUnsubscribe").innerText = "Subscribe";
+          dojo.byId("subscribeUnsubscribe").innerText = "Connect";
         }
 
         function onMessage(msg) {
@@ -414,7 +414,7 @@
               id="subscribeUnsubscribe"
               class="esri-button esri-button--disabled"
             >
-              Unsubscribe
+              Disconnect
             </button>
           </div>
           <div class="input-group input-group-full">
