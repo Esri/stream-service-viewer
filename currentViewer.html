@@ -381,6 +381,12 @@
             setPauseResumeButtonToPause();
             enableButton("pauseResume");
 
+            // Reapplying the websocket filters is required since this is a
+            // new websocket connection
+            if (document.getElementById("useWebsocketMessage").checked) {
+              applyWebsocketFiltersOnReconnect();
+            }
+
             isConnectingFromConnectCall = false;
           }
         }
@@ -470,6 +476,24 @@
                 }
               })
             );
+          }
+        }
+
+        function applyWebsocketFiltersOnReconnect() {
+          expressionFilter = document.getElementById("expressionFilter").value;
+          
+          if (expressionFilter) {
+            streamLayer.sendMessageToSocket({
+              filter: { where: expressionFilter }
+            });
+          }
+
+          if (sketchViewModelLayer.graphics.length > 0) {
+            const graphic = sketchViewModelLayer.graphics.at(0);
+
+            streamLayer.sendMessageToSocket({
+              filter: { geometry: JSON.stringify(graphic.geometry.extent) }
+            });
           }
         }
 
