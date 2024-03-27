@@ -129,7 +129,7 @@
             "click",
             togglePanel
           );
-          on(dojo.byId("subscribeUnsubscribe"), "click", toggleSubscription);
+          on(dojo.byId("connectDisconnect"), "click", toggleSubscription);
           on(dojo.byId("toggleStreamLayer"), "click", toggleStreamLayer);
           on(dojo.byId("clearPreviousObservations"), "click", function () {
             if (streamLayer) streamLayer.clear();
@@ -260,7 +260,7 @@
               "esri-button--disabled"
             );
             domClass.remove(
-              dojo.byId("subscribeUnsubscribe"),
+              dojo.byId("connectDisconnect"),
               "esri-button--disabled"
             );
           }
@@ -272,19 +272,19 @@
             dojo.byId("clearPreviousObservations"),
             "esri-button--disabled"
           );
-          dojo.byId("subscribeUnsubscribe").innerText = "Unsubscribe";
+          dojo.byId("connectDisconnect").innerText = "Disconnect";
           domClass.add(
-            dojo.byId("subscribeUnsubscribe"),
+            dojo.byId("connectDisconnect"),
             "esri-button--disabled"
           );
         }
 
         function onLayerConnected() {
-          dojo.byId("subscribeUnsubscribe").innerText = "Unsubscribe";
+          dojo.byId("connectDisconnect").innerText = "Disconnect";
         }
 
         function onLayerDisconnected() {
-          dojo.byId("subscribeUnsubscribe").innerText = "Subscribe";
+          dojo.byId("connectDisconnect").innerText = "Connect";
         }
 
         function onMessage(msg) {
@@ -411,10 +411,10 @@
           </div>
           <div class="input-group input-group-full">
             <button
-              id="subscribeUnsubscribe"
+              id="connectDisconnect"
               class="esri-button esri-button--disabled"
             >
-              Unsubscribe
+              Disconnect
             </button>
           </div>
           <div class="input-group input-group-full">

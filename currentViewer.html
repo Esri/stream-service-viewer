@@ -5,10 +5,10 @@
     <title>Stream Service Viewer</title>
     <link
       rel="stylesheet"
-      href="https://js.arcgis.com/4.27/esri/themes/light/main.css"
+      href="https://js.arcgis.com/4.29/esri/themes/light/main.css"
     />
     <link rel="stylesheet" href="./streamServiceViewerStyles.css" />
-    <script src="https://js.arcgis.com/4.27/"></script>
+    <script src="https://js.arcgis.com/4.29/"></script>
     <script>
       require([
         "esri/Map",
@@ -21,7 +21,8 @@
         "esri/layers/GraphicsLayer",
         "esri/widgets/Expand",
         "esri/widgets/LayerList",
-        "esri/widgets/Legend"
+        "esri/widgets/Legend",
+        "esri/core/reactiveUtils"
       ], function (
         Map,
         MapView,
@@ -33,7 +34,8 @@
         GraphicsLayer,
         Expand,
         LayerList,
-        Legend
+        Legend,
+        reactiveUtils
       ) {
         let map,
           mapView,
@@ -42,7 +44,8 @@
           streamLayer,
           streamLayerView,
           spatialFilter,
-          expressionFilter;
+          expressionFilter,
+          isConnectingFromConnectCall;
 
         function init() {
           map = new Map({
@@ -90,9 +93,7 @@
                 spatialFilter = obj.graphic.geometry.extent;
                 drawSpatialFilter(spatialFilter);
                 applySpatialFilter(spatialFilter);
-                document
-                  .getElementById("clearSpatialFilter")
-                  .classList.remove("esri-button--disabled");
+                enableButton("clearSpatialFilter");
                 break;
               default:
                 break;
@@ -117,7 +118,7 @@
             .getElementById("toggleStreamLayer")
             .addEventListener("click", toggleStreamLayer);
           document
-            .getElementById("subscribeUnsubscribe")
+            .getElementById("pauseResume")
             .addEventListener("click", toggleSubscription);
           document
             .getElementById("applyWhereClause")
@@ -128,6 +129,9 @@
           document
             .getElementById("clearSpatialFilter")
             .addEventListener("click", clearSpatialFilter);
+          document
+            .getElementById("connectDisconnect")
+            .addEventListener("click", toggleConnection);
           document
             .getElementById("clearPreviousObservations")
             .addEventListener("click", function () {
@@ -170,6 +174,44 @@
           document.getElementById("panelMessage").prepend(element);
         }
 
+        function setPauseResumeButtonToPause() {
+          document.getElementById("pauseResume").innerText =
+            "Pause";
+          document.getElementById("pauseResume").title =
+            "Pause the connection to stop new observations from being applied until resuming. Data will be received but will not update the layer view until resumed.";
+        }
+
+        function setPauseResumeButtonToResume() {
+          document.getElementById("pauseResume").innerText =
+            "Resume";
+          document.getElementById("pauseResume").title =
+            "Resume the connection, apply any observations received while paused, and update the layer view with new observations.";
+        } 
+
+        function setConnectDisconnectButtonToConnect() {
+          document.getElementById("connectDisconnect").innerText =
+            "Connect";
+          document.getElementById("connectDisconnect").title =
+            "Connect to the stream service to stream new observations.";
+        }
+
+        function setConnectDisconnectButtonToDisconnect() {
+          document.getElementById("connectDisconnect").innerText = 
+            "Disconnect";
+          document.getElementById("connectDisconnect").title =
+            "Disconnect from the stream service. New observations will not be streamed until reconnecting.";
+        }
+
+        function disableButton(buttonId) {
+          document.getElementById(buttonId)
+            .classList.add("esri-button--disabled");
+        }
+
+        function enableButton(buttonId) {
+          document.getElementById(buttonId)
+            .classList.remove("esri-button--disabled");
+        }
+
         /*************************************************
          *
          * Functions to add and remove Stream Layer
@@ -181,12 +223,42 @@
             streamLayerView.connectionStatus === "paused"
           ) {
             streamLayerView.resume();
-            document.getElementById("subscribeUnsubscribe").innerText =
-              "Unsubscribe";
+            setPauseResumeButtonToPause();
           } else {
             streamLayerView.pause();
-            document.getElementById("subscribeUnsubscribe").innerText =
-              "Subscribe";
+            setPauseResumeButtonToResume();
+          }
+        }
+
+        function toggleConnection() {
+          if (streamLayerView) {
+            if (streamLayerView.connectionStatus === "disconnected") {
+              streamLayerView.connect();
+
+              /*
+              * The button is disabled and relevant text is displayed
+              * to prevent a bug where the user can click disconnect while
+              * disconnected. Handling for when the layer is connected is
+              * in the layer's connection status change handler.
+              */
+              document.getElementById("connectDisconnect").innerText =
+                    "Connecting";
+              disableButton("connectDisconnect");
+
+              isConnectingFromConnectCall = true;
+            } else {
+              streamLayerView.disconnect();
+              setConnectDisconnectButtonToConnect();
+
+              // Previous observations cannot be cleared when disconnected.
+              disableButton("clearPreviousObservations");
+
+              // Pausing / resuming a disconnected stream layer has no effect,
+              // so, disable the button and set it up so the user can
+              // subscribe again
+              setPauseResumeButtonToResume();
+              disableButton("pauseResume");
+            }
           }
         }
 
@@ -222,6 +294,11 @@
               createToaster("Error connecting to the Stream Service", "error");
             });
 
+            reactiveUtils.watch(
+              () => layerView.connectionStatus,
+              () => onConnectionStatusChange(layerView.connectionStatus)
+            )
+
             streamLayer.popupTemplate = streamLayer.createPopupTemplate();
           });
         }
@@ -243,25 +320,22 @@
         function onLayerAdded() {
           document.getElementById("toggleStreamLayer").innerText =
             "Remove Stream Layer";
-          document
-            .getElementById("subscribeUnsubscribe")
-            .classList.remove("esri-button--disabled");
-          document
-            .getElementById("clearPreviousObservations")
-            .classList.remove("esri-button--disabled");
+          enableButton("pauseResume");
+          enableButton("clearPreviousObservations");
+          enableButton("connectDisconnect");
         }
 
         function onLayerRemoved() {
           document.getElementById("toggleStreamLayer").innerText =
             "Add Stream Layer";
-          document
-            .getElementById("subscribeUnsubscribe")
-            .classList.add("esri-button--disabled");
-          document.getElementById("subscribeUnsubscribe").innerText =
-            "Unsubscribe";
-          document
-            .getElementById("clearPreviousObservations")
-            .classList.add("esri-button--disabled");
+
+          disableButton("pauseResume");
+          setPauseResumeButtonToPause();
+
+          disableButton("clearPreviousObservations");
+
+          disableButton("connectDisconnect");
+          setConnectDisconnectButtonToDisconnect();
         }
 
         function onMessage(msg) {
@@ -292,6 +366,25 @@
           }
         }
 
+        function onConnectionStatusChange(connectionStatus) {
+          /*
+          * This will fire if the user has clicked the "connect" button after a
+          * disconnect. This will prevent a bug from occurring where the
+          * disconnect button can be clicked while still disconnected.
+          */
+          if (isConnectingFromConnectCall && connectionStatus === "connected") {
+            setConnectDisconnectButtonToDisconnect();
+            enableButton("connectDisconnect");
+
+            enableButton("clearPreviousObservations");
+
+            setPauseResumeButtonToPause();
+            enableButton("pauseResume");
+
+            isConnectingFromConnectCall = false;
+          }
+        }
+
         /************************************************
          *
          * Functions to set and clear spatial/expression filter
@@ -300,17 +393,39 @@
         function applyWhereClause() {
           expressionFilter = document.getElementById("expressionFilter").value;
           if (streamLayer) {
-            streamLayer.sendMessageToSocket({
-              filter: { where: expressionFilter }
-            });
+            if (document.getElementById("useWebsocketMessage").checked) {
+              streamLayer.sendMessageToSocket({
+                filter: { where: expressionFilter }
+              });
+            } else {
+              streamLayer.definitionExpression = expressionFilter;
+              // Adding the "toaster" line message explicitly is required for this case,
+              // since there will be no websocket message-received event fired, as opposed to the
+              // sendMessageToSocket case.
+              createToaster(
+                "Successfully updated the filter. \nAttribute Filter: " + expressionFilter,
+                "success"
+              );
+            }
           }
         }
 
         function applySpatialFilter(geometry) {
           if (streamLayer) {
-            streamLayer.sendMessageToSocket({
-              filter: { geometry: JSON.stringify(geometry) }
-            });
+            if (document.getElementById("useWebsocketMessage").checked) {
+              streamLayer.sendMessageToSocket({
+                filter: { geometry: JSON.stringify(geometry) }
+              });
+            } else {
+              streamLayer.geometryDefinition = geometry;
+              // Adding the "toaster" line message explicitly is required for this case,
+              // since there will be no websocket message-received event fired, as opposed to the
+              // sendMessageToSocket case.
+              createToaster(
+                "Successfully updated the filter. \nSpatial Filter: " + JSON.stringify(geometry),
+                "success"
+              );
+            }
           }
         }
 
@@ -322,11 +437,20 @@
           spatialFilter = null;
           sketchViewModelLayer.removeAll();
           if (streamLayer) {
-            streamLayer.sendMessageToSocket({ filter: { geometry: null } });
+            if (document.getElementById("useWebsocketMessage").checked) {
+              streamLayer.sendMessageToSocket({ filter: { geometry: null } });
+            } else {
+              streamLayer.geometryDefinition = null;
+              // Adding the "toaster" line message explicitly is required for this case,
+              // since there will be no websocket message-received event fired, as opposed to the
+              // sendMessageToSocket case.
+              createToaster(
+                "Successfully updated the filter. \nSpatial Filter: ",
+                "success"
+              );
+            }
           }
-          document
-            .getElementById("clearSpatialFilter")
-            .classList.add("esri-button--disabled");
+          disableButton("clearSpatialFilter");
         }
 
         function drawSpatialFilter(geometry) {
@@ -385,10 +509,20 @@
           </div>
           <div class="input-group input-group-full">
             <button
-              id="subscribeUnsubscribe"
+              id="connectDisconnect"
               class="esri-button esri-button--disabled"
+              title="Disconnect from the stream service. New observations will not be streamed until reconnecting."
             >
-              Unsubscribe
+              Disconnect
+            </button>
+          </div>
+          <div class="input-group input-group-full">
+            <button
+              id="pauseResume"
+              class="esri-button esri-button--disabled"
+              title="Pause the connection to stop new observations from being applied until resuming. Data will be received but will not update the layer view until resumed."
+            >
+              Pause
             </button>
           </div>
           <div class="input-group input-group-full">
@@ -420,6 +554,14 @@
                 Clear Spatial Filter
               </button>
             </div>
+          </div>
+          <div class="input-group input-group-full">
+            <input
+              id="useWebsocketMessage"
+              class="esri-input"
+              type="checkbox"
+            />
+            <label for="useWebsocketMessage">Use websocket messages</label>
           </div>
         </div>
       </section>
