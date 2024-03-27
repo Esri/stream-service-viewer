@@ -399,7 +399,9 @@
               });
             } else {
               streamLayer.definitionExpression = expressionFilter;
-
+              // Adding the "toaster" line message explicitly is required for this case,
+              // since there will be no websocket message-received event fired, as opposed to the
+              // sendMessageToSocket case.
               createToaster(
                 "Successfully updated the filter. \nAttribute Filter: " + expressionFilter,
                 "success"
@@ -416,7 +418,9 @@
               });
             } else {
               streamLayer.geometryDefinition = geometry;
-
+              // Adding the "toaster" line message explicitly is required for this case,
+              // since there will be no websocket message-received event fired, as opposed to the
+              // sendMessageToSocket case.
               createToaster(
                 "Successfully updated the filter. \nSpatial Filter: " + JSON.stringify(geometry),
                 "success"
@@ -437,7 +441,9 @@
               streamLayer.sendMessageToSocket({ filter: { geometry: null } });
             } else {
               streamLayer.geometryDefinition = null;
-
+              // Adding the "toaster" line message explicitly is required for this case,
+              // since there will be no websocket message-received event fired, as opposed to the
+              // sendMessageToSocket case.
               createToaster(
                 "Successfully updated the filter. \nSpatial Filter: ",
                 "success"
