@@ -383,7 +383,7 @@
 
             // Reapplying the websocket filters is required since this is a
             // new websocket connection
-            if (document.getElementById("useWebsocketMessage").checked) {
+            if (document.getElementById("useSendMessageToSocket").checked) {
               applyWebsocketFiltersOnReconnect();
             }
 
@@ -399,7 +399,7 @@
         function applyWhereClause() {
           expressionFilter = document.getElementById("expressionFilter").value;
           if (streamLayer) {
-            if (document.getElementById("useWebsocketMessage").checked) {
+            if (document.getElementById("useSendMessageToSocket").checked) {
               streamLayer.sendMessageToSocket({
                 filter: { where: expressionFilter }
               });
@@ -418,7 +418,7 @@
 
         function applySpatialFilter(geometry) {
           if (streamLayer) {
-            if (document.getElementById("useWebsocketMessage").checked) {
+            if (document.getElementById("useSendMessageToSocket").checked) {
               streamLayer.sendMessageToSocket({
                 filter: { geometry: JSON.stringify(geometry) }
               });
@@ -443,7 +443,7 @@
           spatialFilter = null;
           sketchViewModelLayer.removeAll();
           if (streamLayer) {
-            if (document.getElementById("useWebsocketMessage").checked) {
+            if (document.getElementById("useSendMessageToSocket").checked) {
               streamLayer.sendMessageToSocket({ filter: { geometry: null } });
             } else {
               streamLayer.geometryDefinition = null;
@@ -483,17 +483,13 @@
           expressionFilter = document.getElementById("expressionFilter").value;
           
           if (expressionFilter) {
-            streamLayer.sendMessageToSocket({
-              filter: { where: expressionFilter }
-            });
+            applyWhereClause();
           }
 
           if (sketchViewModelLayer.graphics.length > 0) {
             const graphic = sketchViewModelLayer.graphics.at(0);
 
-            streamLayer.sendMessageToSocket({
-              filter: { geometry: JSON.stringify(graphic.geometry.extent) }
-            });
+            applySpatialFilter(graphic.geometry.extent);
           }
         }
 
@@ -581,11 +577,11 @@
           </div>
           <div class="input-group input-group-full">
             <input
-              id="useWebsocketMessage"
+              id="useSendMessageToSocket"
               class="esri-input"
               type="checkbox"
             />
-            <label for="useWebsocketMessage">Use websocket messages</label>
+            <label for="useSendMessageToSocket">Use sendMessageToSocket</label>
           </div>
         </div>
       </section>
