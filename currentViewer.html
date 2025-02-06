@@ -270,8 +270,6 @@
           //url to stream service
           const svcUrl = document.getElementById("streamServiceUrl").value;
 
-          try {
-
           //construct Stream Layer
           streamLayer = new StreamLayer({
             url: svcUrl,
@@ -284,9 +282,7 @@
 
           //Add layer to map
           map.add(streamLayer);
-        } catch (error) {
-          console.erorr(e)
-        }
+
           //When layer loads, register listeners for layer events and add layer to map
           mapView.whenLayerView(streamLayer).then(function (layerView) {
             streamLayerView = layerView;
